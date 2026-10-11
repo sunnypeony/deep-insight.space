@@ -1,0 +1,52 @@
+---
+import { site } from '../data/site';
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="container inner">
+    <p>
+      <span class="name">{site.name}</span> · Notes from geometry to embodied intelligence
+    </p>
+    <p class="meta">
+      中文为主 · English technical terms
+      <span aria-hidden="true">·</span>
+      <a href={site.github} rel="noopener">GitHub</a>
+      <span aria-hidden="true">·</span>
+      <a href={site.youtubeChannel} rel="noopener">YouTube</a>
+      <span aria-hidden="true">·</span>
+      © {year}
+    </p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    border-top: 1px solid var(--line);
+    margin-top: 24px;
+  }
+  .inner {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+    padding-block: 32px 40px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .name {
+    color: var(--ink-2);
+    font-weight: 600;
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 8px;
+  }
+  .meta a {
+    color: var(--ink-2);
+  }
+  .meta a:hover {
+    color: var(--brand);
+  }
+</style>

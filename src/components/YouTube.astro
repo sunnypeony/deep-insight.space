@@ -1,0 +1,86 @@
+---
+// 轻量 YouTube 嵌入：先显示封面，点击后才加载播放器（隐私增强模式 youtube-nocookie）。
+// 用法：<YouTube id="dQw4w9WgXcQ" title="视频标题" />
+interface Props {
+  id: string;
+  title: string;
+}
+const { id, title } = Astro.props;
+const watchUrl = `https://www.youtube.com/watch?v=${id}`;
+---
+
+<div class="yt">
+  <button class="yt-frame" type="button" data-yt-id={id} data-yt-title={title} aria-label={`播放：${title}`}>
+    <img src={`https://i.ytimg.com/vi/${id}/hqdefault.jpg`} alt="" loading="lazy" decoding="async" />
+    <span class="play" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="22" height="22"><path d="M8 5v14l11-7z" fill="currentColor"></path></svg>
+    </span>
+  </button>
+  <a class="yt-link" href={watchUrl} target="_blank" rel="noopener">在 YouTube 打开 ↗</a>
+</div>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>('.yt-frame').forEach((btn) => {
+    btn.addEventListener(
+      'click',
+      () => {
+        const iframe = document.createElement('iframe');
+        iframe.src = `https://www.youtube-nocookie.com/embed/${btn.dataset.ytId}?autoplay=1&rel=0`;
+        iframe.title = btn.dataset.ytTitle ?? 'YouTube video';
+        iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+        iframe.allowFullscreen = true;
+        iframe.referrerPolicy = 'strict-origin-when-cross-origin';
+        iframe.className = 'yt-iframe';
+        btn.replaceWith(iframe);
+      },
+      { once: true },
+    );
+  });
+</script>
+
+<style>
+  .yt-frame,
+  :global(.yt-iframe) {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: 0;
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: #000;
+  }
+  .yt-frame {
+    position: relative;
+    padding: 0;
+    cursor: pointer;
+  }
+  .yt-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.92;
+    transition: opacity 0.2s ease;
+  }
+  .yt-frame:hover img {
+    opacity: 1;
+  }
+  .play {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 64px;
+    height: 64px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.92);
+    color: #c1694f;
+  }
+  .yt-link {
+    display: inline-block;
+    margin-top: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--brand);
+  }
+</style>
