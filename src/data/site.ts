@@ -13,8 +13,8 @@ export const site = {
     zh: '从几何出发，理解机器如何看见世界。关于坐标变换、四元数、3D 感知、SLAM 与世界模型的个人知识地图。',
   } as L,
   author: 'Danyang',
-  /** “About the author / 认识作者”按钮跳转到这里 */
   github: 'https://github.com/sunnypeony',
+  /** “About the author / 认识作者”按钮跳转到这里 */
   linkedin: 'https://www.linkedin.com/in/danyang-huang/',
   youtubeChannel: 'https://www.youtube.com/', // TODO: 换成你的频道地址
   email: '', // 可选：留空则不显示

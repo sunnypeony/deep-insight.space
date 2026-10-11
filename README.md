@@ -45,7 +45,7 @@ public/                     ← favicon、robots.txt
 - 英文是默认语言（`/`），中文在 `/zh/`；页头右上角的地球图标是语言切换菜单。
 - 改文案：内容类在 `src/data/site.ts`（`{ en, zh }`），按钮/标题等界面文字在 `src/i18n.ts`。
 - 文章正文只写一种语言（frontmatter 里的 `lang`，默认 `zh`）；可选的 `en:` 字段提供英文首页上显示的标题、简介和标签。
-- 首页“About the author / 认识作者”按钮跳转到 `site.github`（当前为 https://github.com/sunnypeony）。
+- 首页“About the author / 认识作者”按钮跳转到 `site.linkedin`（当前为 https://www.linkedin.com/in/danyang-huang/）。
 
 ## 日常写作
 
