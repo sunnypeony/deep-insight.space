@@ -21,21 +21,31 @@ npm run preview    # 本地预览 dist/ 的正式效果
 
 ```
 src/
-├─ data/site.ts             ← 站点文案、5 个板块、项目、视频、个人路径（最常改的文件）
+├─ data/site.ts             ← 站点内容：5 个板块、项目、视频、GitHub 链接等（中英双语，最常改的文件）
+├─ i18n.ts                  ← 界面固定文字的中英翻译、语言工具函数
 ├─ content/notes/*.md       ← 文章（Markdown + 公式）
 │  └─ _template.md          ← 文章模板：问题 → 直觉 → 表达 → 例子 → 实验 → 参考
 ├─ components/
 │  ├─ FrameViz.astro        ← 首页四元数驱动的交互坐标系
 │  ├─ YouTube.astro         ← 点击才加载的 YouTube 播放器
 │  └─ Header.astro / Footer.astro
+├─ views/Home.astro, Topic.astro ← 首页 / 板块页的共用模板（中英文共用）
 ├─ layouts/BaseLayout.astro
 ├─ pages/
-│  ├─ index.astro           ← 首页
+│  ├─ index.astro           ← 英文首页 /（默认语言）
+│  ├─ zh/                   ← 中文页面 /zh/、/zh/topics/...
 │  ├─ topics/[slug].astro   ← 板块页 /topics/foundations/ 等
 │  └─ notes/[...slug].astro ← 文章页 /notes/<文件名>/
 └─ styles/global.css        ← 颜色、字体等设计变量（含深色模式）
 public/                     ← favicon、robots.txt
 ```
+
+## 双语
+
+- 英文是默认语言（`/`），中文在 `/zh/`；页头右上角的地球图标是语言切换菜单。
+- 改文案：内容类在 `src/data/site.ts`（`{ en, zh }`），按钮/标题等界面文字在 `src/i18n.ts`。
+- 文章正文只写一种语言（frontmatter 里的 `lang`，默认 `zh`）；可选的 `en:` 字段提供英文首页上显示的标题、简介和标签。
+- 首页“About the author / 认识作者”按钮跳转到 `site.github`（当前为 https://github.com/sunnypeony）。
 
 ## 日常写作
 

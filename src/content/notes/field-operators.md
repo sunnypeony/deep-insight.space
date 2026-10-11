@@ -5,6 +5,11 @@ topic: foundations
 label: 数学直觉
 date: 2026-10-11
 draft: true
+lang: zh
+en:
+  title: 'Gradient, divergence, curl: what does a field tell us locally?'
+  description: 'Treat ∇ as a local probe and see what it measures on scalar and vector fields.'
+  label: Math intuition
 ---
 
 ## 问题是什么

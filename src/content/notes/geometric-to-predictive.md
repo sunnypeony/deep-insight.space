@@ -5,6 +5,11 @@ topic: world-models
 label: 世界模型
 date: 2026-10-09
 draft: true
+lang: zh
+en:
+  title: 'From geometric maps to predictive world representations'
+  description: 'A map tells a robot where the world is; a world model must also say what happens next.'
+  label: World models
 ---
 
 ## 问题是什么

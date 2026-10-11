@@ -1,22 +1,26 @@
 ---
 // 轻量 YouTube 嵌入：先显示封面，点击后才加载播放器（隐私增强模式 youtube-nocookie）。
-// 用法：<YouTube id="dQw4w9WgXcQ" title="视频标题" />
+// 用法：<YouTube id="dQw4w9WgXcQ" title="视频标题" lang="zh" />
+import { useT, type Lang } from '../i18n';
+
 interface Props {
   id: string;
   title: string;
+  lang: Lang;
 }
-const { id, title } = Astro.props;
+const { id, title, lang } = Astro.props;
+const t = useT(lang);
 const watchUrl = `https://www.youtube.com/watch?v=${id}`;
 ---
 
 <div class="yt">
-  <button class="yt-frame" type="button" data-yt-id={id} data-yt-title={title} aria-label={`播放：${title}`}>
+  <button class="yt-frame" type="button" data-yt-id={id} data-yt-title={title} aria-label={`${t.play}: ${title}`}>
     <img src={`https://i.ytimg.com/vi/${id}/hqdefault.jpg`} alt="" loading="lazy" decoding="async" />
     <span class="play" aria-hidden="true">
       <svg viewBox="0 0 24 24" width="22" height="22"><path d="M8 5v14l11-7z" fill="currentColor"></path></svg>
     </span>
   </button>
-  <a class="yt-link" href={watchUrl} target="_blank" rel="noopener">在 YouTube 打开 ↗</a>
+  <a class="yt-link" href={watchUrl} target="_blank" rel="noopener">{t.openOnYouTube} ↗</a>
 </div>
 
 <script>

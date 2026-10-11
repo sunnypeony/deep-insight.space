@@ -16,6 +16,16 @@ const notes = defineCollection({
     /** 草稿：开发模式可预览，正式构建时不生成页面 */
     draft: z.boolean().default(false),
     youtubeId: z.string().optional(),
+    /** 正文所用语言，决定文章页界面的语言 */
+    lang: z.enum(['zh', 'en']).default('zh'),
+    /** 可选：英文版首页 / 专题页上显示的标题、简介和标签 */
+    en: z
+      .object({
+        title: z.string(),
+        description: z.string(),
+        label: z.string(),
+      })
+      .optional(),
   }),
 });
 

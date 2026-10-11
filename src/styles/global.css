@@ -19,7 +19,7 @@
   --axis-z: #4a7aa0;
   --shadow: 0 1px 0 rgba(27, 29, 28, 0.03), 0 10px 30px -18px rgba(27, 29, 28, 0.25);
 
-  --font-serif: 'Noto Serif SC', 'Songti SC', 'STSong', Georgia, serif;
+  --font-serif: 'Newsreader', 'Noto Serif SC', 'Songti SC', 'STSong', Georgia, serif;
   --font-sans: 'Inter', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 

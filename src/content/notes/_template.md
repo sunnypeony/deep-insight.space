@@ -5,6 +5,11 @@ topic: foundations
 label: 数学直觉
 date: 2026-10-11
 draft: true
+lang: zh
+en:
+  title: 'English title (optional)'
+  description: 'One-sentence English summary.'
+  label: Math intuition
 # youtubeId: xxxxxxxxxxx   # 有配套视频时填写
 ---
 

@@ -5,6 +5,11 @@ topic: foundations
 label: 机器人
 date: 2026-10-10
 draft: true
+lang: zh
+en:
+  title: 'Where do quaternions come from, and why are they good at rotations?'
+  description: 'Starting from the formula Hamilton carved on Brougham Bridge, connect unit quaternions to 3D rotation.'
+  label: Robotics
 ---
 
 ## 问题是什么

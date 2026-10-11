@@ -1,15 +1,19 @@
 ---
 import { site } from '../data/site';
+import { useT, type Lang } from '../i18n';
+
+const { lang } = Astro.props as { lang: Lang };
+const t = useT(lang);
 const year = new Date().getFullYear();
 ---
 
 <footer class="site-footer">
   <div class="container inner">
     <p>
-      <span class="name">{site.name}</span> · Notes from geometry to embodied intelligence
+      <span class="name">{site.name}</span> · {t.footerTagline}
     </p>
     <p class="meta">
-      中文为主 · English technical terms
+      {t.footerLang}
       <span aria-hidden="true">·</span>
       <a href={site.github} rel="noopener">GitHub</a>
       <span aria-hidden="true">·</span>
