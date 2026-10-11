@@ -1,0 +1,155 @@
+---
+import { getCollection, render } from 'astro:content';
+import 'katex/dist/katex.min.css';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import YouTube from '../../components/YouTube.astro';
+import { topics } from '../../data/site';
+
+export async function getStaticPaths() {
+  const notes = await getCollection('notes', ({ data }) => import.meta.env.DEV || !data.draft);
+  return notes.map((note) => ({ params: { slug: note.id }, props: { note } }));
+}
+
+const { note } = Astro.props;
+const { Content } = await render(note);
+const topic = topics.find((t) => t.slug === note.data.topic)!;
+const date = note.data.date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
+---
+
+<BaseLayout title={note.data.title} description={note.data.description}>
+  <article class="container article">
+    <header>
+      <a class="back" href={`/topics/${topic.slug}/`}>← {topic.title}</a>
+      <p class="eyebrow">{note.data.label}</p>
+      <h1>{note.data.title}</h1>
+      <p class="desc">{note.data.description}</p>
+      <p class="meta">
+        <time datetime={note.data.date.toISOString()}>{date}</time>
+        {note.data.draft && <span class="chip chip-soon">草稿</span>}
+      </p>
+    </header>
+
+    {
+      note.data.youtubeId && (
+        <div class="video">
+          <YouTube id={note.data.youtubeId} title={note.data.title} />
+        </div>
+      )
+    }
+
+    <div class="prose">
+      <Content />
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .article {
+    max-width: calc(760px + var(--gutter) * 2);
+    padding-block: clamp(40px, 7vw, 80px);
+  }
+  .back {
+    display: inline-block;
+    margin-bottom: 28px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .back:hover {
+    color: var(--brand);
+  }
+  h1 {
+    margin-top: 14px;
+    font-size: clamp(30px, 4.4vw, 44px);
+  }
+  .desc {
+    margin-top: 16px;
+    font-size: 18px;
+    color: var(--ink-2);
+  }
+  .meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 18px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--line);
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .video {
+    margin-top: 32px;
+  }
+  .prose {
+    margin-top: 32px;
+    font-size: 17px;
+    line-height: 1.9;
+    color: var(--ink-2);
+  }
+  .prose :global(h2) {
+    margin: 2.2em 0 0.7em;
+    font-size: 26px;
+    color: var(--ink);
+  }
+  .prose :global(h3) {
+    margin: 1.8em 0 0.6em;
+    font-size: 21px;
+    color: var(--ink);
+  }
+  .prose :global(p),
+  .prose :global(ul),
+  .prose :global(ol) {
+    margin: 0 0 1.1em;
+  }
+  .prose :global(a) {
+    color: var(--brand);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .prose :global(strong) {
+    color: var(--ink);
+  }
+  .prose :global(code) {
+    font-family: var(--font-mono);
+    font-size: 0.88em;
+  }
+  .prose :global(:not(pre) > code) {
+    padding: 0.15em 0.4em;
+    border-radius: 6px;
+    background: var(--surface-2);
+  }
+  .prose :global(pre) {
+    padding: 18px 20px;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    overflow-x: auto;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .prose :global(.katex-display) {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 6px 0;
+  }
+  .prose :global(blockquote) {
+    margin: 1.4em 0;
+    padding: 4px 20px;
+    border-left: 3px solid var(--accent);
+    color: var(--muted);
+  }
+</style>
+
+<style is:global>
+  /* Shiki 双主题：跟随深色模式 */
+  :root[data-theme='dark'] .astro-code,
+  :root[data-theme='dark'] .astro-code span {
+    color: var(--shiki-dark) !important;
+    background-color: var(--shiki-dark-bg) !important;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) .astro-code,
+    :root:not([data-theme='light']) .astro-code span {
+      color: var(--shiki-dark) !important;
+      background-color: var(--shiki-dark-bg) !important;
+    }
+  }
+</style>

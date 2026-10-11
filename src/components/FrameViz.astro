@@ -1,0 +1,416 @@
+---
+// 首页的“签名”交互：一个由单位四元数驱动的刚体坐标系。
+// 自动在随机姿态之间做 slerp；可以用鼠标 / 手指拖动旋转。
+---
+
+<figure class="viz" aria-label="由四元数驱动的三维坐标系，可拖动旋转">
+  <canvas id="frame-canvas" aria-hidden="true"></canvas>
+  <figcaption>
+    <span class="cap">A point · A frame · A world</span>
+    <span class="readout" aria-live="off">
+      <span class="q" id="q-readout">q = (1.000, 0.000, 0.000, 0.000)</span>
+      <span class="theta" id="theta-readout">θ = 0.0°</span>
+    </span>
+  </figcaption>
+  <span class="hint">拖动旋转 · 双击复位</span>
+</figure>
+
+<script>
+  type Quat = [number, number, number, number]; // [w, x, y, z]
+  type Vec3 = [number, number, number];
+
+  const qMul = (a: Quat, b: Quat): Quat => [
+    a[0] * b[0] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3],
+    a[0] * b[1] + a[1] * b[0] + a[2] * b[3] - a[3] * b[2],
+    a[0] * b[2] - a[1] * b[3] + a[2] * b[0] + a[3] * b[1],
+    a[0] * b[3] + a[1] * b[2] - a[2] * b[1] + a[3] * b[0],
+  ];
+  const qConj = (q: Quat): Quat => [q[0], -q[1], -q[2], -q[3]];
+  const qNorm = (q: Quat): Quat => {
+    const n = Math.hypot(...q) || 1;
+    return [q[0] / n, q[1] / n, q[2] / n, q[3] / n];
+  };
+  const qAxisAngle = (axis: Vec3, angle: number): Quat => {
+    const n = Math.hypot(...axis) || 1;
+    const s = Math.sin(angle / 2) / n;
+    return [Math.cos(angle / 2), axis[0] * s, axis[1] * s, axis[2] * s];
+  };
+  const cross = (a: Vec3, b: Vec3): Vec3 => [
+    a[1] * b[2] - a[2] * b[1],
+    a[2] * b[0] - a[0] * b[2],
+    a[0] * b[1] - a[1] * b[0],
+  ];
+  // v' = q v q⁻¹ 的高效写法
+  const rotate = (q: Quat, v: Vec3): Vec3 => {
+    const u: Vec3 = [q[1], q[2], q[3]];
+    const t = cross(u, v).map((c) => 2 * c) as Vec3;
+    const ut = cross(u, t);
+    return [v[0] + q[0] * t[0] + ut[0], v[1] + q[0] * t[1] + ut[1], v[2] + q[0] * t[2] + ut[2]];
+  };
+  const slerp = (a: Quat, b: Quat, t: number): Quat => {
+    let d = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
+    let bb = b;
+    if (d < 0) {
+      d = -d;
+      bb = [-b[0], -b[1], -b[2], -b[3]];
+    }
+    if (d > 0.9995) return qNorm(a.map((ai, i) => ai + t * (bb[i] - ai)) as Quat);
+    const th = Math.acos(d);
+    const s = Math.sin(th);
+    const wa = Math.sin((1 - t) * th) / s;
+    const wb = Math.sin(t * th) / s;
+    return a.map((ai, i) => wa * ai + wb * bb[i]) as Quat;
+  };
+  // 绕随机轴转一个适中的角度，得到下一个目标姿态，保证运动舒缓
+  const randomNear = (from: Quat): Quat => {
+    const axis: Vec3 = [Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5];
+    const angle = 0.9 + Math.random() * 1.3;
+    return qNorm(qMul(qAxisAngle(axis, angle), from));
+  };
+  const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+
+  const canvas = document.getElementById('frame-canvas') as HTMLCanvasElement | null;
+  const qOut = document.getElementById('q-readout');
+  const thOut = document.getElementById('theta-readout');
+
+  if (canvas) {
+    const ctx = canvas.getContext('2d')!;
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // 观察者视角：世界 z 轴朝上（机器人常用约定），略微俯视
+    const VIEW: Quat = qMul(
+      qMul(qAxisAngle([1, 0, 0], 0.38), qAxisAngle([0, 1, 0], -0.72)),
+      qAxisAngle([1, 0, 0], -Math.PI / 2),
+    );
+    const VIEW_INV = qConj(VIEW);
+
+    const HOME: Quat = qNorm(qAxisAngle([0.3, 0.2, 1], 0.6));
+    let q: Quat = HOME;
+    let from: Quat = q;
+    let to: Quat = randomNear(q);
+    let t0 = performance.now();
+    const DURATION = 4200;
+    const HOLD = 900;
+
+    let dragging = false;
+    let lastX = 0;
+    let lastY = 0;
+    let idleUntil = 0;
+    const trail: Vec3[] = [];
+    const POINT: Vec3 = (() => {
+      const p: Vec3 = [0.55, 0.45, 0.7];
+      const n = Math.hypot(...p);
+      return p.map((c) => c / n) as Vec3;
+    })();
+
+    let colors: Record<string, string> = {};
+    const readColors = () => {
+      const cs = getComputedStyle(document.documentElement);
+      const g = (n: string) => cs.getPropertyValue(n).trim();
+      colors = {
+        ink: g('--ink-2'),
+        muted: g('--muted'),
+        line: g('--line-strong'),
+        brand: g('--brand'),
+        accent: g('--accent'),
+        x: g('--axis-x'),
+        y: g('--axis-y'),
+        z: g('--axis-z'),
+      };
+    };
+    readColors();
+    window.addEventListener('themechange', readColors);
+    matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readColors);
+
+    let W = 0;
+    let H = 0;
+    let dpr = 1;
+    const resize = () => {
+      const r = canvas.getBoundingClientRect();
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = r.width;
+      H = r.height;
+      canvas.width = Math.round(W * dpr);
+      canvas.height = Math.round(H * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    new ResizeObserver(resize).observe(canvas);
+    resize();
+
+    const project = (world: Vec3): [number, number, number] => {
+      const v = rotate(VIEW, world);
+      const d = 4.2;
+      const k = d / (d - v[2]);
+      const s = Math.min(W, H) * 0.36;
+      return [W / 2 + v[0] * s * k, H / 2 - v[1] * s * k, v[2]];
+    };
+
+    const circle = (rot: Quat | null, n = 96) => {
+      const pts: [number, number, number][] = [];
+      for (let i = 0; i <= n; i++) {
+        const a = (i / n) * Math.PI * 2;
+        let p: Vec3 = [Math.cos(a), Math.sin(a), 0];
+        if (rot) p = rotate(rot, p);
+        pts.push(project(p));
+      }
+      return pts;
+    };
+
+    const strokePath = (pts: [number, number, number][], color: string, width: number, alpha = 1, dash: number[] = []) => {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.setLineDash(dash);
+      ctx.beginPath();
+      pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+      ctx.stroke();
+      ctx.restore();
+    };
+
+    const arrow = (dir: Vec3, color: string, label: string) => {
+      const [ox, oy] = project([0, 0, 0]);
+      const [x, y, z] = project(dir);
+      const alpha = 0.55 + 0.45 * Math.max(0, Math.min(1, (z + 1) / 2));
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(ox, oy);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      const ang = Math.atan2(y - oy, x - ox);
+      const hl = 9;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x - hl * Math.cos(ang - 0.4), y - hl * Math.sin(ang - 0.4));
+      ctx.lineTo(x - hl * Math.cos(ang + 0.4), y - hl * Math.sin(ang + 0.4));
+      ctx.closePath();
+      ctx.fill();
+      ctx.font = '500 12px "JetBrains Mono", ui-monospace, monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, x + 14 * Math.cos(ang), y + 14 * Math.sin(ang));
+      ctx.restore();
+    };
+
+    const draw = () => {
+      ctx.clearRect(0, 0, W, H);
+
+      // 世界：单位球的三个大圆（固定不动）
+      strokePath(circle(null), colors.line, 1, 0.9);
+      strokePath(circle(qAxisAngle([1, 0, 0], Math.PI / 2)), colors.line, 1, 0.55);
+      strokePath(circle(qAxisAngle([0, 1, 0], Math.PI / 2)), colors.line, 1, 0.55);
+
+      // 刚体：随 q 转动的赤道面
+      strokePath(circle(q), colors.accent, 1.2, 0.55, [3, 5]);
+
+      // 世界坐标轴（淡）
+      const [ox, oy] = project([0, 0, 0]);
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      ctx.strokeStyle = colors.muted;
+      ctx.lineWidth = 1;
+      for (const a of [
+        [1.25, 0, 0],
+        [0, 1.25, 0],
+        [0, 0, 1.25],
+      ] as Vec3[]) {
+        const [x, y] = project(a);
+        ctx.beginPath();
+        ctx.moveTo(ox, oy);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // 点在球面上留下的轨迹
+      if (trail.length > 1) {
+        ctx.save();
+        ctx.strokeStyle = colors.accent;
+        ctx.lineWidth = 1.6;
+        ctx.lineCap = 'round';
+        for (let i = 1; i < trail.length; i++) {
+          const [x0, y0] = project(trail[i - 1]);
+          const [x1, y1] = project(trail[i]);
+          ctx.globalAlpha = (i / trail.length) * 0.6;
+          ctx.beginPath();
+          ctx.moveTo(x0, y0);
+          ctx.lineTo(x1, y1);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // 刚体坐标轴，按深度排序后绘制
+      const axes = [
+        { d: rotate(q, [1, 0, 0]), c: colors.x, l: 'x' },
+        { d: rotate(q, [0, 1, 0]), c: colors.y, l: 'y' },
+        { d: rotate(q, [0, 0, 1]), c: colors.z, l: 'z' },
+      ].sort((a, b) => project(a.d)[2] - project(b.d)[2]);
+      axes.forEach((a) => arrow(a.d, a.c, a.l));
+
+      // 原点
+      ctx.fillStyle = colors.ink;
+      ctx.beginPath();
+      ctx.arc(ox, oy, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 附着在刚体上的点 p' = q p q⁻¹
+      const p = rotate(q, POINT);
+      const [px, py] = project(p);
+      ctx.save();
+      ctx.fillStyle = colors.accent;
+      ctx.globalAlpha = 0.18;
+      ctx.beginPath();
+      ctx.arc(px, py, 13, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.beginPath();
+      ctx.arc(px, py, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    };
+
+    const fmt = (n: number) => (n >= 0 ? ' ' : '') + n.toFixed(3);
+    let lastReadout = 0;
+    const updateReadout = (now: number) => {
+      if (now - lastReadout < 80) return;
+      lastReadout = now;
+      const w = q[0] < 0 ? q.map((c) => -c) : q; // 显示 w ≥ 0 的那一半（q 与 −q 表示同一旋转）
+      if (qOut) qOut.textContent = `q = (${w.map(fmt).join(',')})`;
+      if (thOut) thOut.textContent = `θ = ${((2 * Math.acos(Math.min(1, Math.abs(w[0])))) * 180 / Math.PI).toFixed(1)}°`;
+    };
+
+    const pushTrail = () => {
+      trail.push(rotate(q, POINT));
+      if (trail.length > 140) trail.shift();
+    };
+
+    let visible = true;
+    new IntersectionObserver(([e]) => (visible = e.isIntersecting)).observe(canvas);
+
+    const tick = (now: number) => {
+      if (visible && !document.hidden) {
+        if (!dragging && now > idleUntil && !reduceMotion) {
+          const t = (now - t0) / DURATION;
+          if (t >= 1) {
+            if (now - t0 > DURATION + HOLD) {
+              from = q;
+              to = randomNear(q);
+              t0 = now;
+            }
+          } else {
+            q = slerp(from, to, ease(Math.max(0, t)));
+          }
+        }
+        pushTrail();
+        draw();
+        updateReadout(now);
+      }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+
+    // ── 交互：拖动 = 绕屏幕轴的增量旋转，左乘到 q 上 ──
+    canvas.addEventListener('pointerdown', (e) => {
+      dragging = true;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      canvas.setPointerCapture(e.pointerId);
+    });
+    canvas.addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      const dx = e.clientX - lastX;
+      const dy = e.clientY - lastY;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      const ang = Math.hypot(dx, dy) * 0.012;
+      if (ang === 0) return;
+      const axisWorld = rotate(VIEW_INV, [dy, dx, 0]);
+      q = qNorm(qMul(qAxisAngle(axisWorld, ang), q));
+    });
+    const endDrag = () => {
+      if (!dragging) return;
+      dragging = false;
+      idleUntil = performance.now() + 2500;
+      from = q;
+      to = randomNear(q);
+      t0 = idleUntil;
+    };
+    canvas.addEventListener('pointerup', endDrag);
+    canvas.addEventListener('pointercancel', endDrag);
+    canvas.addEventListener('dblclick', () => {
+      from = q;
+      to = HOME;
+      t0 = performance.now();
+      idleUntil = 0;
+    });
+  }
+</script>
+
+<style>
+  .viz {
+    position: relative;
+    margin: 0;
+    border-radius: var(--radius-lg);
+    background:
+      radial-gradient(120% 90% at 70% 20%, color-mix(in srgb, var(--surface) 60%, transparent), transparent 60%),
+      var(--surface-2);
+    padding: 12px 12px 0;
+    overflow: hidden;
+  }
+  canvas {
+    width: 100%;
+    aspect-ratio: 1 / 0.86;
+    cursor: grab;
+    touch-action: none;
+  }
+  canvas:active {
+    cursor: grabbing;
+  }
+  figcaption {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    padding: 4px 20px 20px;
+  }
+  .cap {
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+  }
+  .readout {
+    display: flex;
+    gap: 14px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--muted);
+    white-space: pre;
+    font-variant-numeric: tabular-nums;
+  }
+  .hint {
+    position: absolute;
+    top: 18px;
+    right: 20px;
+    font-size: 12px;
+    color: var(--muted);
+    opacity: 0.85;
+    pointer-events: none;
+  }
+  @media (max-width: 480px) {
+    .readout {
+      font-size: 11px;
+      gap: 10px;
+    }
+    .theta {
+      display: none;
+    }
+  }
+</style>
