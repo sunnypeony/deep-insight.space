@@ -1,70 +1,71 @@
 # Deep Insight · deepinsight.space
 
-从几何出发，理解机器如何看见世界 —— 关于坐标变换、四元数、3D 感知、SLAM 与世界模型的个人知识站。
+Start from geometry, learn how machines see the world — a personal knowledge site on coordinate transforms, quaternions, 3D perception, SLAM and world models.
 
-基于 [Astro](https://astro.build) 的纯静态站点：Markdown 写文章、KaTeX 渲染公式、YouTube 轻量嵌入、自动深浅色模式。
+A fully static site built with [Astro](https://astro.build): notes in Markdown, math rendered with KaTeX, lightweight YouTube embeds, automatic light/dark mode, and English/Chinese versions of every page.
 
-## 本地运行
+## Run locally
 
-需要 **Node.js ≥ 22.12**（`node -v` 查看；推荐用 [nvm](https://github.com/nvm-sh/nvm)：`nvm install 22`）。
+Requires **Node.js ≥ 22.12** (check with `node -v`; [nvm](https://github.com/nvm-sh/nvm) is recommended: `nvm install 22`).
 
 ```bash
 git clone https://github.com/sunnypeony/deep-insight.space.git
 cd deep-insight.space
-npm install        # 安装依赖
-npm run dev        # 开发模式 → http://localhost:4321 （改代码自动刷新）
-npm run build      # 生成静态文件到 dist/
-npm run preview    # 本地预览 dist/ 的正式效果
+npm install        # install dependencies
+npm run dev        # dev server → http://localhost:4321 (reloads on save)
+npm run build      # build static files into dist/
+npm run preview    # preview the production build from dist/
+npm run check      # type-check .astro and .ts files
 ```
 
-## 目录结构
+## Project structure
 
 ```
 src/
-├─ data/site.ts             ← 站点内容：5 个板块、项目、视频、GitHub 链接等（中英双语，最常改的文件）
-├─ i18n.ts                  ← 界面固定文字的中英翻译、语言工具函数
-├─ content/notes/*.md       ← 文章（Markdown + 公式）
-│  └─ _template.md          ← 文章模板：问题 → 直觉 → 表达 → 例子 → 实验 → 参考
+├─ data/site.ts                  ← site content: 5 tracks, projects, videos, profile links (bilingual; the file you'll edit most)
+├─ i18n.ts                       ← UI strings in English and Chinese, plus language helpers
+├─ content/notes/*.md            ← notes (Markdown + math)
+│  └─ _template.md               ← note template: Question → Intuition → Formalism → Robotics → Experiment → References
 ├─ components/
-│  ├─ FrameViz.astro        ← 首页四元数驱动的交互坐标系
-│  ├─ YouTube.astro         ← 点击才加载的 YouTube 播放器
+│  ├─ FrameViz.astro             ← interactive quaternion-driven coordinate frame on the homepage
+│  ├─ YouTube.astro              ← YouTube player that loads only on click
 │  └─ Header.astro / Footer.astro
-├─ views/Home.astro, Topic.astro ← 首页 / 板块页的共用模板（中英文共用）
+├─ views/Home.astro, Topic.astro ← shared homepage / track page templates (used by both languages)
 ├─ layouts/BaseLayout.astro
 ├─ pages/
-│  ├─ index.astro           ← 英文首页 /（默认语言）
-│  ├─ zh/                   ← 中文页面 /zh/、/zh/topics/...
-│  ├─ topics/[slug].astro   ← 板块页 /topics/foundations/ 等
-│  └─ notes/[...slug].astro ← 文章页 /notes/<文件名>/
-└─ styles/global.css        ← 颜色、字体等设计变量（含深色模式）
-public/                     ← favicon、robots.txt
+│  ├─ index.astro                ← English homepage / (default language)
+│  ├─ zh/                        ← Chinese pages /zh/, /zh/topics/...
+│  ├─ topics/[slug].astro        ← track pages, e.g. /topics/foundations/
+│  └─ notes/[...slug].astro      ← note pages /notes/<file-name>/
+└─ styles/global.css             ← design tokens: colors, fonts, dark mode
+public/                          ← favicon, robots.txt
 ```
 
-## 双语
+## Languages
 
-- 英文是默认语言（`/`），中文在 `/zh/`；页头右上角的地球图标是语言切换菜单。
-- 改文案：内容类在 `src/data/site.ts`（`{ en, zh }`），按钮/标题等界面文字在 `src/i18n.ts`。
-- 文章正文只写一种语言（frontmatter 里的 `lang`，默认 `zh`）；可选的 `en:` 字段提供英文首页上显示的标题、简介和标签。
-- 首页“About the author / 认识作者”按钮跳转到 `site.linkedin`（当前为 https://www.linkedin.com/in/danyang-huang/）。
+- English is the default language (`/`); Chinese lives under `/zh/`. The globe icon in the top-right of the header opens the language menu.
+- To change copy: content goes in `src/data/site.ts` (as `{ en, zh }` pairs); UI text such as buttons and headings goes in `src/i18n.ts`.
+- Each note body is written in one language (`lang` in the frontmatter, default `zh`). The optional `en:` field supplies the title, description and label shown on the English homepage and track pages.
+- The "About the author" button on the homepage links to `site.linkedin` (currently https://www.linkedin.com/in/danyang-huang/).
 
-## 日常写作
+## Writing notes
 
-1. 复制 `src/content/notes/_template.md`，改名为英文短名，例如 `quaternion-origin.md`（文件名就是网址）。
-2. 填写 frontmatter：`topic` 必须是 `foundations | transforms | perception | world-models | projects` 之一。
-3. 写作时保留 `draft: true`：开发模式可以预览；正式站点只在首页显示为“撰写中”，不生成页面。
-4. 写完改成 `draft: false`，提交推送即发布。
-5. 有配套视频时，在 frontmatter 加 `youtubeId: xxxxxxxxxxx`，文章顶部会自动嵌入播放器并附“在 YouTube 打开”链接。
+1. Copy `src/content/notes/_template.md` and give it a short English file name, e.g. `quaternion-origin.md` (the file name becomes the URL).
+2. Fill in the frontmatter. `topic` must be one of `foundations | transforms | perception | world-models | projects`.
+3. Keep `draft: true` while writing: drafts can be previewed in dev mode, but the production site only lists them as "Writing" on the homepage and does not generate a page.
+4. When finished, set `draft: false`, then commit and push to publish.
+5. If the note has a companion video, add `youtubeId: xxxxxxxxxxx` to the frontmatter; the player is embedded at the top of the note with an "Open on YouTube" link.
 
-公式：行内 `$e^{i\theta}$`，块级用 `$$ ... $$`。
+Math: inline `$e^{i\theta}$`, display blocks with `$$ ... $$`.
 
-首页的视频卡片在 `src/data/site.ts` 的 `videos` 里，填上 `youtubeId` 后由“制作中”变为可播放。
-记得把 `site.youtubeChannel` 换成你的频道地址。
+The video cards on the homepage come from `videos` in `src/data/site.ts`; adding a `youtubeId` turns an "In production" placeholder into a playable video.
+Remember to replace `site.youtubeChannel` with the real channel URL.
 
-## 部署到 deepinsight.space（Vercel）
+## Deploy to deepinsight.space (Vercel)
 
-1. Vercel → **Add New → Project** → 导入 `sunnypeony/deep-insight.space`。
-2. Root Directory 保持 `./`（仓库根目录），Framework 自动识别为 **Astro**；
-   构建命令 `npm run build`、输出目录 `dist` 均为默认值，无需修改。
-3. **Settings → Domains** 添加 `deepinsight.space` 与 `www.deepinsight.space`
-   （若域名还挂在旧项目上，先从旧项目移除）。
-4. 之后每次推送到生产分支（默认 `main`）都会自动部署；其他分支会生成预览链接。
+1. In Vercel, go to **Add New → Project** and import `sunnypeony/deep-insight.space`.
+2. Keep Root Directory as `./` (the repository root). The framework is detected as **Astro**;
+   the build command `npm run build` and output directory `dist` are the defaults and need no changes.
+3. Under **Settings → Domains**, add `deepinsight.space` and `www.deepinsight.space`
+   (if the domain is still attached to an old project, remove it there first).
+4. Every push to the production branch (`main` by default) deploys automatically; other branches get preview URLs.
