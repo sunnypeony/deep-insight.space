@@ -15,6 +15,7 @@ export const site = {
   author: 'Danyang',
   /** “About the author / 认识作者”按钮跳转到这里 */
   github: 'https://github.com/sunnypeony',
+  linkedin: 'https://www.linkedin.com/in/danyang-huang/',
   youtubeChannel: 'https://www.youtube.com/', // TODO: 换成你的频道地址
   email: '', // 可选：留空则不显示
 };
