@@ -34,7 +34,7 @@ src/
 │  ├─ topics/[slug].astro   ← 板块页 /topics/foundations/ 等
 │  └─ notes/[...slug].astro ← 文章页 /notes/<文件名>/
 └─ styles/global.css        ← 颜色、字体等设计变量（含深色模式）
-public/                     ← favicon、CNAME、robots.txt
+public/                     ← favicon、robots.txt
 ```
 
 ## 日常写作
@@ -50,26 +50,11 @@ public/                     ← favicon、CNAME、robots.txt
 首页的视频卡片在 `src/data/site.ts` 的 `videos` 里，填上 `youtubeId` 后由“制作中”变为可播放。
 记得把 `site.youtubeChannel` 换成你的频道地址。
 
-## 部署到 deepinsight.space
+## 部署到 deepinsight.space（Vercel）
 
-### 方案 A：GitHub Pages（仓库已配置好）
-
-1. 将代码合并到 `main` 分支。
-2. GitHub 仓库 → **Settings → Pages → Build and deployment → Source** 选 **GitHub Actions**。
-   之后每次推送到 `main`，`.github/workflows/deploy.yml` 会自动构建并发布。
-3. 同一页面 **Custom domain** 填 `deepinsight.space`，保存后勾选 **Enforce HTTPS**（证书签发可能需要几分钟到一小时）。
-4. 在域名注册商的 DNS 设置中添加：
-
-   | 类型  | 主机 | 值 |
-   |-------|------|----|
-   | A     | @    | 185.199.108.153 |
-   | A     | @    | 185.199.109.153 |
-   | A     | @    | 185.199.110.153 |
-   | A     | @    | 185.199.111.153 |
-   | CNAME | www  | sunnypeony.github.io |
-
-`public/CNAME` 已写入 `deepinsight.space`。
-
-### 方案 B：Cloudflare Pages / Vercel / Netlify
-
-导入 GitHub 仓库，构建命令 `npm run build`，输出目录 `dist`，Node 版本 22，然后在平台里绑定自定义域名，按提示修改 DNS。
+1. Vercel → **Add New → Project** → 导入 `sunnypeony/deep-insight.space`。
+2. Root Directory 保持 `./`（仓库根目录），Framework 自动识别为 **Astro**；
+   构建命令 `npm run build`、输出目录 `dist` 均为默认值，无需修改。
+3. **Settings → Domains** 添加 `deepinsight.space` 与 `www.deepinsight.space`
+   （若域名还挂在旧项目上，先从旧项目移除）。
+4. 之后每次推送到生产分支（默认 `main`）都会自动部署；其他分支会生成预览链接。
