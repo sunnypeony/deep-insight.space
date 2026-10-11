@@ -21,21 +21,31 @@ npm run preview    # 本地预览 dist/ 的正式效果
 
 ```
 src/
-├─ data/site.ts             ← 站点文案、5 个板块、项目、视频、个人路径（最常改的文件）
+├─ data/site.ts             ← 站点内容：5 个板块、项目、视频、GitHub 链接等（中英双语，最常改的文件）
+├─ i18n.ts                  ← 界面固定文字的中英翻译、语言工具函数
 ├─ content/notes/*.md       ← 文章（Markdown + 公式）
 │  └─ _template.md          ← 文章模板：问题 → 直觉 → 表达 → 例子 → 实验 → 参考
 ├─ components/
 │  ├─ FrameViz.astro        ← 首页四元数驱动的交互坐标系
 │  ├─ YouTube.astro         ← 点击才加载的 YouTube 播放器
 │  └─ Header.astro / Footer.astro
+├─ views/Home.astro, Topic.astro ← 首页 / 板块页的共用模板（中英文共用）
 ├─ layouts/BaseLayout.astro
 ├─ pages/
-│  ├─ index.astro           ← 首页
+│  ├─ index.astro           ← 英文首页 /（默认语言）
+│  ├─ zh/                   ← 中文页面 /zh/、/zh/topics/...
 │  ├─ topics/[slug].astro   ← 板块页 /topics/foundations/ 等
 │  └─ notes/[...slug].astro ← 文章页 /notes/<文件名>/
 └─ styles/global.css        ← 颜色、字体等设计变量（含深色模式）
-public/                     ← favicon、CNAME、robots.txt
+public/                     ← favicon、robots.txt
 ```
+
+## 双语
+
+- 英文是默认语言（`/`），中文在 `/zh/`；页头右上角的地球图标是语言切换菜单。
+- 改文案：内容类在 `src/data/site.ts`（`{ en, zh }`），按钮/标题等界面文字在 `src/i18n.ts`。
+- 文章正文只写一种语言（frontmatter 里的 `lang`，默认 `zh`）；可选的 `en:` 字段提供英文首页上显示的标题、简介和标签。
+- 首页“About the author / 认识作者”按钮跳转到 `site.github`（当前为 https://github.com/sunnypeony）。
 
 ## 日常写作
 
@@ -50,26 +60,11 @@ public/                     ← favicon、CNAME、robots.txt
 首页的视频卡片在 `src/data/site.ts` 的 `videos` 里，填上 `youtubeId` 后由“制作中”变为可播放。
 记得把 `site.youtubeChannel` 换成你的频道地址。
 
-## 部署到 deepinsight.space
+## 部署到 deepinsight.space（Vercel）
 
-### 方案 A：GitHub Pages（仓库已配置好）
-
-1. 将代码合并到 `main` 分支。
-2. GitHub 仓库 → **Settings → Pages → Build and deployment → Source** 选 **GitHub Actions**。
-   之后每次推送到 `main`，`.github/workflows/deploy.yml` 会自动构建并发布。
-3. 同一页面 **Custom domain** 填 `deepinsight.space`，保存后勾选 **Enforce HTTPS**（证书签发可能需要几分钟到一小时）。
-4. 在域名注册商的 DNS 设置中添加：
-
-   | 类型  | 主机 | 值 |
-   |-------|------|----|
-   | A     | @    | 185.199.108.153 |
-   | A     | @    | 185.199.109.153 |
-   | A     | @    | 185.199.110.153 |
-   | A     | @    | 185.199.111.153 |
-   | CNAME | www  | sunnypeony.github.io |
-
-`public/CNAME` 已写入 `deepinsight.space`。
-
-### 方案 B：Cloudflare Pages / Vercel / Netlify
-
-导入 GitHub 仓库，构建命令 `npm run build`，输出目录 `dist`，Node 版本 22，然后在平台里绑定自定义域名，按提示修改 DNS。
+1. Vercel → **Add New → Project** → 导入 `sunnypeony/deep-insight.space`。
+2. Root Directory 保持 `./`（仓库根目录），Framework 自动识别为 **Astro**；
+   构建命令 `npm run build`、输出目录 `dist` 均为默认值，无需修改。
+3. **Settings → Domains** 添加 `deepinsight.space` 与 `www.deepinsight.space`
+   （若域名还挂在旧项目上，先从旧项目移除）。
+4. 之后每次推送到生产分支（默认 `main`）都会自动部署；其他分支会生成预览链接。

@@ -1,9 +1,12 @@
 ---
 // 首页的“签名”交互：一个由单位四元数驱动的刚体坐标系。
 // 自动在随机姿态之间做 slerp；可以用鼠标 / 手指拖动旋转。
+import { useT, type Lang } from '../i18n';
+const { lang } = Astro.props as { lang: Lang };
+const t = useT(lang);
 ---
 
-<figure class="viz" aria-label="由四元数驱动的三维坐标系，可拖动旋转">
+<figure class="viz" aria-label={t.vizLabel}>
   <canvas id="frame-canvas" aria-hidden="true"></canvas>
   <figcaption>
     <span class="cap">A point · A frame · A world</span>
@@ -12,7 +15,7 @@
       <span class="theta" id="theta-readout">θ = 0.0°</span>
     </span>
   </figcaption>
-  <span class="hint">拖动旋转 · 双击复位</span>
+  <span class="hint">{t.vizHint}</span>
 </figure>
 
 <script>

@@ -1,0 +1,741 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import FrameViz from '../components/FrameViz.astro';
+import YouTube from '../components/YouTube.astro';
+import { site, topics, projects, videos, journey, articleRecipe } from '../data/site';
+import { localizePath, useT, type Lang } from '../i18n';
+
+const { lang } = Astro.props as { lang: Lang };
+const t = useT(lang);
+const topicHref = (slug: string) => localizePath(`/topics/${slug}/`, lang);
+// 英文首页优先使用文章 frontmatter 里的 en 字段
+const noteText = (n: (typeof allNotes)[number]) => (lang === 'en' && n.data.en ? n.data.en : n.data);
+
+// 首页列出全部笔记；草稿显示为“撰写中”，不生成链接（开发模式下可点击预览）
+const allNotes = (await getCollection('notes')).sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+const notes = allNotes.slice(0, 5);
+const linkable = (draft: boolean) => !draft || import.meta.env.DEV;
+const countByTopic = (slug: string) => allNotes.filter((n) => n.data.topic === slug && !n.data.draft).length;
+---
+
+<BaseLayout lang={lang}>
+  <!-- ───────── Hero ───────── -->
+  <section class="hero container">
+    <div class="hero-copy">
+      <p class="eyebrow">{t.eyebrow}</p>
+      <h1 class:list={[lang]}>{t.heroLines[0]}<br />{t.heroLines[1]}<br /><em>{t.heroEm}</em>{t.heroTail}</h1>
+      <p class="lede">{t.lede}</p>
+      <div class="cta">
+        <a class="btn btn-primary" href="#map">
+          {t.ctaMap}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"></path></svg>
+        </a>
+        <a class="btn btn-ghost" href={site.github} target="_blank" rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.04-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.56-.29-5.25-1.28-5.25-5.68 0-1.25.45-2.28 1.19-3.08-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.8 1.19 1.83 1.19 3.08 0 4.41-2.7 5.38-5.26 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"></path></svg>
+          {t.ctaAuthor}
+          <span class="sr-only">(GitHub)</span>
+        </a>
+      </div>
+      <dl class="stats">
+        <div><dt>{t.stats.tracks}</dt><dd>{topics.length}</dd></div>
+        <div><dt>{t.stats.notes}</dt><dd>{allNotes.length}</dd></div>
+        <div><dt>{t.stats.thread}</dt><dd>{t.stats.threadValue}</dd></div>
+      </dl>
+    </div>
+    <div class="hero-viz">
+      <FrameViz lang={lang} />
+    </div>
+  </section>
+
+  <!-- ───────── Knowledge map ───────── -->
+  <section id="map" class="section container">
+    <div class="section-head reveal">
+      <div>
+        <p class="eyebrow">{t.mapEyebrow}</p>
+        <h2>{t.mapTitle}</h2>
+      </div>
+      <p class="aside">{t.mapAside}</p>
+    </div>
+
+    <ol class="route reveal" aria-label={t.routeLabel}>
+      {
+        topics.map((tp) => {
+          const n = countByTopic(tp.slug);
+          return (
+            <li>
+              <a class="topic" href={topicHref(tp.slug)}>
+                <span class="node" aria-hidden="true" />
+                <span class="topic-index">
+                  {tp.index} / {tp.en}
+                </span>
+                <h3>{tp.title[lang]}</h3>
+                <p class="topic-summary">{tp.summary[lang]}</p>
+                <ul class="kw">
+                  {tp.keywords.map((k) => (
+                    <li>{k[lang]}</li>
+                  ))}
+                </ul>
+                <span class="topic-foot">
+                  <span class={n ? 'chip chip-live' : 'chip chip-soon'}>{n ? t.noteCount(n) : t.comingSoon}</span>
+                  <svg class="go" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+                    <path d="M7 17 17 7M8 7h9v9" />
+                  </svg>
+                </span>
+              </a>
+            </li>
+          );
+        })
+      }
+    </ol>
+  </section>
+
+  <!-- ───────── Article recipe ───────── -->
+  <section class="recipe-wrap container reveal" aria-labelledby="recipe-title">
+    <div class="recipe">
+      <div class="recipe-head">
+        <p class="eyebrow">{t.recipeEyebrow}</p>
+        <h2 id="recipe-title">{t.recipeTitle}</h2>
+      </div>
+      <ol class="steps">
+        {
+          articleRecipe.map((s, i) => (
+            <li>
+              <span class="step-n">{String(i + 1).padStart(2, '0')}</span>
+              <span class="step-t">{s.step[lang]}</span>
+              <span class="step-d">{s.desc[lang]}</span>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+  </section>
+
+  <!-- ───────── Notes + About ───────── -->
+  <section id="notes" class="section container split">
+    <div class="notes reveal">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">{t.notesEyebrow}</p>
+          <h2>{t.notesTitle}</h2>
+        </div>
+        <p class="aside">{t.notesAside}</p>
+      </div>
+      <ul class="note-list">
+        {
+          notes.map((n) => {
+            const text = noteText(n);
+            const inner = (
+              <>
+                <span class="note-label">{text.label}</span>
+                <span class="note-main">
+                  <span class="note-title">{text.title}</span>
+                  <span class="note-desc">{text.description}</span>
+                </span>
+                <span class="note-meta">
+                  {n.data.draft ? (
+                    <span class="chip chip-soon">{t.draft}</span>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+                      <path d="M7 17 17 7M8 7h9v9" />
+                    </svg>
+                  )}
+                </span>
+              </>
+            );
+            return (
+              <li>
+                {linkable(n.data.draft) ? (
+                  <a class="note" href={`/notes/${n.id}/`}>
+                    {inner}
+                  </a>
+                ) : (
+                  <div class="note is-draft">{inner}</div>
+                )}
+              </li>
+            );
+          })
+        }
+      </ul>
+    </div>
+
+    <aside id="about" class="about reveal" aria-labelledby="about-title">
+      <p class="eyebrow">{t.aboutEyebrow}</p>
+      <h2 id="about-title" class:list={['about-title', lang]}>{t.aboutTitle[0]}<br />{t.aboutTitle[1]}</h2>
+      <p class="about-body">{t.aboutBody(site.author)}</p>
+      <ol class="journey" aria-label={t.journeyLabel}>
+        {journey.map((j) => <li>{j}</li>)}
+      </ol>
+      <div class="about-links">
+        <a href={site.github} target="_blank" rel="noopener">GitHub ↗</a>
+        <a href={site.youtubeChannel} rel="noopener">YouTube ↗</a>
+        {site.email && <a href={`mailto:${site.email}`}>Email ↗</a>}
+      </div>
+    </aside>
+  </section>
+
+  <!-- ───────── Projects ───────── -->
+  <section id="projects" class="section container">
+    <div class="section-head reveal">
+      <div>
+        <p class="eyebrow">{t.projectsEyebrow}</p>
+        <h2>{t.projectsTitle}</h2>
+      </div>
+      <p class="aside">{t.projectsAside}</p>
+    </div>
+    <div class="projects">
+      {
+        projects.map((p, i) => (
+          <article class="project reveal">
+            <div class="project-top">
+              <span class="project-n">P{String(i + 1).padStart(2, '0')}</span>
+              <span class={p.status === 'planned' ? 'chip chip-soon' : 'chip chip-live'}>{t.status[p.status]}</span>
+            </div>
+            <h3>{p.href ? <a href={p.href}>{p.name}</a> : p.name}</h3>
+            <p>{p.summary[lang]}</p>
+            <ul class="tags">
+              {p.tags.map((t) => (
+                <li class="chip">{t}</li>
+              ))}
+            </ul>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+
+  <!-- ───────── Videos ───────── -->
+  <section id="videos" class="section container">
+    <div class="videos-band reveal">
+      <div class="videos-intro">
+        <span class="play-badge" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path d="M8 5v14l11-7z" fill="currentColor"></path></svg>
+        </span>
+        <div>
+          <p class="eyebrow">{t.videosEyebrow}</p>
+          <h2>{t.videosTitle}</h2>
+          <p class="aside">{t.videosAside}</p>
+        </div>
+        <a class="btn btn-ghost videos-cta" href={site.youtubeChannel} target="_blank" rel="noopener">{t.videosCta} ↗</a>
+      </div>
+
+      <div class="video-grid">
+        {
+          videos.map((v) => (
+            <article class="video">
+              {v.youtubeId ? (
+                <YouTube id={v.youtubeId} title={v.title[lang]} lang={lang} />
+              ) : (
+                <div class="video-placeholder" aria-hidden="true">
+                  <span class="chip chip-soon">{t.inProduction}</span>
+                </div>
+              )}
+              <p class="video-topic">{v.topic[lang]}</p>
+              <h3>{v.title[lang]}</h3>
+              <p class="video-summary">{v.summary[lang]}</p>
+            </article>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  /* ── Hero ── */
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
+    gap: clamp(32px, 5vw, 72px);
+    align-items: center;
+    padding-block: clamp(40px, 8vw, 96px) clamp(32px, 6vw, 64px);
+  }
+  h1 {
+    margin-top: 22px;
+    font-size: clamp(38px, 5.6vw, 66px);
+    line-height: 1.18;
+    letter-spacing: 0.005em;
+  }
+  h1.en {
+    font-size: clamp(36px, 5vw, 60px);
+    line-height: 1.1;
+    letter-spacing: -0.015em;
+  }
+  h1 em {
+    font-style: normal;
+    color: var(--brand);
+    background: linear-gradient(transparent 70%, var(--accent-soft) 70%);
+    padding-inline: 2px;
+  }
+  .lede {
+    margin-top: 24px;
+    max-width: 36em;
+    font-size: clamp(16px, 1.6vw, 19px);
+    line-height: 1.85;
+    color: var(--ink-2);
+  }
+  .cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 34px;
+  }
+  .stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 36px;
+    margin: 40px 0 0;
+    padding-top: 22px;
+    border-top: 1px solid var(--line);
+  }
+  .stats dt {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+  .stats dd {
+    margin: 2px 0 0;
+    font-family: var(--font-serif);
+    font-size: 22px;
+  }
+
+  /* ── Knowledge route ── */
+  .route {
+    --cols: 5;
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+    gap: 18px;
+    list-style: none;
+    margin: 0;
+    padding: 22px 0 0;
+  }
+  .route::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 26px;
+    right: 26px;
+    border-top: 1px dashed var(--line-strong);
+  }
+  .topic {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 28px 24px 22px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    transition: transform 0.25s ease, border-color 0.25s ease;
+  }
+  .topic:hover {
+    transform: translateY(-4px);
+    border-color: var(--brand);
+  }
+  .node {
+    position: absolute;
+    top: -22px;
+    left: 24px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 2px solid var(--brand);
+    transform: translateY(-50%);
+    transition: background-color 0.25s ease;
+  }
+  .topic:hover .node {
+    background: var(--brand);
+  }
+  .topic-index {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--brand);
+  }
+  .topic h3 {
+    margin-top: 22px;
+    font-size: 22px;
+  }
+  .topic-summary {
+    margin-top: 10px;
+    font-size: 14px;
+    color: var(--ink-2);
+    line-height: 1.7;
+  }
+  .kw {
+    list-style: none;
+    margin: 16px 0 0;
+    padding: 14px 0 0;
+    border-top: 1px solid var(--line);
+    display: grid;
+    gap: 4px;
+    font-size: 13.5px;
+    color: var(--muted);
+  }
+  .kw li::before {
+    content: '·';
+    margin-right: 8px;
+    color: var(--accent);
+  }
+  .topic-foot {
+    margin-top: auto;
+    padding-top: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--brand);
+  }
+  .go {
+    transition: transform 0.25s ease;
+  }
+  .topic:hover .go {
+    transform: translate(2px, -2px);
+  }
+
+  /* ── Recipe ── */
+  .recipe {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 2fr);
+    gap: 32px;
+    align-items: center;
+    padding: clamp(24px, 4vw, 40px);
+    border-radius: var(--radius-lg);
+    background: var(--surface-2);
+  }
+  .recipe-head h2 {
+    margin-top: 10px;
+    font-size: clamp(22px, 2.6vw, 28px);
+  }
+  .steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 10px;
+    counter-reset: s;
+  }
+  .steps li {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 14px 14px 16px;
+    border-radius: 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+  }
+  .step-n {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--accent);
+  }
+  .step-t {
+    font-family: var(--font-serif);
+    font-size: 18px;
+  }
+  .step-d {
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--muted);
+  }
+
+  /* ── Notes + About ── */
+  .split {
+    display: grid;
+    grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr);
+    gap: clamp(32px, 4vw, 48px);
+    align-items: start;
+  }
+  .note-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--line);
+  }
+  .note-list li {
+    border-bottom: 1px solid var(--line);
+  }
+  .note {
+    display: grid;
+    grid-template-columns: 110px minmax(0, 1fr) auto;
+    gap: 8px 24px;
+    align-items: baseline;
+    padding: 26px 4px;
+    transition: background-color 0.2s ease;
+  }
+  a.note:hover {
+    background: color-mix(in srgb, var(--surface-2) 60%, transparent);
+  }
+  a.note:hover .note-title {
+    color: var(--brand);
+  }
+  .note-label {
+    font-size: 13px;
+    color: var(--brand);
+  }
+  .note-main {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .note-title {
+    font-family: var(--font-serif);
+    font-size: clamp(18px, 2vw, 22px);
+    line-height: 1.45;
+    transition: color 0.2s ease;
+  }
+  .note-desc {
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .note-meta {
+    color: var(--muted);
+  }
+  .is-draft .note-title {
+    color: var(--ink-2);
+  }
+
+  .about {
+    position: sticky;
+    top: 108px;
+    padding: clamp(26px, 3vw, 36px);
+    border-radius: var(--radius-lg);
+    background: var(--surface-2);
+  }
+  .about-title {
+    margin-top: 18px;
+    font-size: clamp(26px, 2.8vw, 34px);
+    line-height: 1.35;
+  }
+  .about-title.en {
+    font-size: clamp(24px, 2.3vw, 28px);
+  }
+  .about-body {
+    margin-top: 18px;
+    font-size: 15px;
+    line-height: 1.9;
+    color: var(--ink-2);
+  }
+  .journey {
+    list-style: none;
+    margin: 24px 0 0;
+    padding: 22px 0 0;
+    border-top: 1px solid var(--line-strong);
+    display: grid;
+    gap: 0;
+  }
+  .journey li {
+    position: relative;
+    padding: 0 0 14px 22px;
+    font-size: 14px;
+    color: var(--ink-2);
+  }
+  .journey li::before {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 8px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1.5px solid var(--brand);
+    background: var(--surface-2);
+  }
+  .journey li:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 18px;
+    bottom: 0;
+    width: 1px;
+    background: var(--line-strong);
+  }
+  .journey li:last-child {
+    padding-bottom: 0;
+    color: var(--brand);
+    font-weight: 600;
+  }
+  .journey li:last-child::before {
+    background: var(--brand);
+  }
+  .about-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-top: 24px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--brand);
+  }
+
+  /* ── Projects ── */
+  .projects {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+  }
+  .project {
+    padding: 26px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .project-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .project-n {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .project h3 {
+    margin-top: 22px;
+    font-size: 24px;
+  }
+  .project p {
+    margin-top: 10px;
+    font-size: 14.5px;
+    color: var(--ink-2);
+  }
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    list-style: none;
+    margin: 18px 0 0;
+    padding: 0;
+  }
+
+  /* ── Videos ── */
+  .videos-band {
+    padding: clamp(24px, 4vw, 44px);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .videos-intro {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 20px 28px;
+    align-items: center;
+  }
+  .videos-intro h2 {
+    margin-top: 8px;
+    font-size: clamp(24px, 3vw, 32px);
+  }
+  .videos-intro .aside {
+    margin-top: 8px;
+    color: var(--muted);
+    font-size: 15px;
+  }
+  .play-badge {
+    display: grid;
+    place-items: center;
+    width: 76px;
+    height: 76px;
+    border-radius: 18px;
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .video-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 24px;
+    margin-top: 32px;
+  }
+  .video-placeholder {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 16 / 9;
+    border-radius: var(--radius);
+    background:
+      repeating-linear-gradient(135deg, transparent 0 14px, color-mix(in srgb, var(--line) 55%, transparent) 14px 15px),
+      var(--surface-2);
+  }
+  .video-topic {
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--brand);
+  }
+  .video h3 {
+    margin-top: 4px;
+    font-size: 20px;
+  }
+  .video-summary {
+    margin-top: 6px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 1120px) {
+    .route {
+      --cols: 3;
+      padding-top: 0;
+    }
+    .route::before,
+    .node {
+      display: none;
+    }
+    .steps {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .recipe {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (max-width: 900px) {
+    .hero {
+      grid-template-columns: 1fr;
+    }
+    .hero-viz {
+      max-width: 560px;
+    }
+    .split {
+      grid-template-columns: 1fr;
+    }
+    .about {
+      position: static;
+    }
+    .route {
+      --cols: 2;
+    }
+    .projects {
+      grid-template-columns: 1fr;
+    }
+    .videos-intro {
+      grid-template-columns: auto minmax(0, 1fr);
+    }
+    .videos-cta {
+      grid-column: 1 / -1;
+      justify-self: start;
+    }
+  }
+  @media (max-width: 600px) {
+    .route {
+      --cols: 1;
+    }
+    .steps {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .note {
+      grid-template-columns: minmax(0, 1fr) auto;
+      padding: 20px 2px;
+    }
+    .note-label {
+      grid-column: 1 / -1;
+    }
+    .play-badge {
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+    }
+  }
+</style>

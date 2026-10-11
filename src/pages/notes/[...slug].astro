@@ -4,6 +4,7 @@ import 'katex/dist/katex.min.css';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import YouTube from '../../components/YouTube.astro';
 import { topics } from '../../data/site';
+import { localizePath } from '../../i18n';
 
 export async function getStaticPaths() {
   const notes = await getCollection('notes', ({ data }) => import.meta.env.DEV || !data.draft);
@@ -12,27 +13,28 @@ export async function getStaticPaths() {
 
 const { note } = Astro.props;
 const { Content } = await render(note);
+const lang = note.data.lang;
 const topic = topics.find((t) => t.slug === note.data.topic)!;
-const date = note.data.date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
+const date = note.data.date.toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 ---
 
-<BaseLayout title={note.data.title} description={note.data.description}>
+<BaseLayout lang={lang} translated={false} title={note.data.title} description={note.data.description}>
   <article class="container article">
     <header>
-      <a class="back" href={`/topics/${topic.slug}/`}>← {topic.title}</a>
+      <a class="back" href={localizePath(`/topics/${topic.slug}/`, lang)}>← {topic.title[lang]}</a>
       <p class="eyebrow">{note.data.label}</p>
       <h1>{note.data.title}</h1>
       <p class="desc">{note.data.description}</p>
       <p class="meta">
         <time datetime={note.data.date.toISOString()}>{date}</time>
-        {note.data.draft && <span class="chip chip-soon">草稿</span>}
+        {note.data.draft && <span class="chip chip-soon">{lang === 'zh' ? '草稿' : 'Draft'}</span>}
       </p>
     </header>
 
     {
       note.data.youtubeId && (
         <div class="video">
-          <YouTube id={note.data.youtubeId} title={note.data.title} />
+          <YouTube id={note.data.youtubeId} title={note.data.title} lang={lang} />
         </div>
       )
     }

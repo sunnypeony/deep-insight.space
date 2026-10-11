@@ -1,10 +1,32 @@
 ---
-import { site, nav } from '../data/site';
+import { site } from '../data/site';
+import { languages, localizePath, useT, type Lang } from '../i18n';
+
+interface Props {
+  lang: Lang;
+  translated?: boolean;
+}
+const { lang, translated = true } = Astro.props;
+const t = useT(lang);
+const home = localizePath('/', lang);
+const nav = [
+  { label: t.nav.map, href: `${home}#map` },
+  { label: t.nav.notes, href: `${home}#notes` },
+  { label: t.nav.projects, href: `${home}#projects` },
+  { label: t.nav.videos, href: `${home}#videos` },
+  { label: t.nav.about, href: `${home}#about` },
+];
+// 没有翻译版本的页面（如文章），切换语言时回到对应语言的首页
+const langLinks = (Object.keys(languages) as Lang[]).map((l) => ({
+  l,
+  label: languages[l],
+  href: translated ? localizePath(Astro.url.pathname, l) : localizePath('/', l),
+}));
 ---
 
 <header class="site-header">
   <div class="container bar">
-    <a href="/" class="brand" aria-label={`${site.name} 首页`}>
+    <a href={home} class="brand" aria-label={`${site.name} ${t.home}`}>
       <span class="mark" aria-hidden="true">D</span>
       <span class="brand-text">
         <span class="name">{site.name}</span>
@@ -12,14 +34,38 @@ import { site, nav } from '../data/site';
       </span>
     </a>
 
-    <nav class="nav" aria-label="主导航">
+    <nav class="nav" aria-label={t.mainNav}>
       <ul id="nav-list">
         {nav.map((item) => <li><a href={item.href}>{item.label}</a></li>)}
       </ul>
     </nav>
 
     <div class="tools">
-      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换深色 / 浅色模式">
+      <div class="lang" id="lang-menu">
+        <button class="lang-btn" id="lang-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="lang-list" aria-label={t.language}>
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3Z"></path>
+          </svg>
+          <span>{lang === 'en' ? 'EN' : '中'}</span>
+          <svg class="caret" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+        </button>
+        <ul class="lang-list" id="lang-list" hidden>
+          {
+            langLinks.map((x) => (
+              <li>
+                <a href={x.href} hreflang={x.l === 'zh' ? 'zh-CN' : 'en'} lang={x.l === 'zh' ? 'zh-CN' : 'en'} aria-current={x.l === lang ? 'true' : undefined}>
+                  {x.label}
+                  {x.l === lang && (
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m5 12 5 5 9-10" /></svg>
+                  )}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label={t.themeToggle}>
         <svg class="sun" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
           <circle cx="12" cy="12" r="4"></circle>
           <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>
@@ -28,7 +74,7 @@ import { site, nav } from '../data/site';
           <path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z"></path>
         </svg>
       </button>
-      <button class="icon-btn menu-btn" id="menu-toggle" type="button" aria-expanded="false" aria-controls="nav-list" aria-label="打开菜单">
+      <button class="icon-btn menu-btn" id="menu-toggle" type="button" aria-expanded="false" aria-controls="nav-list" aria-label={t.menuOpen}>
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
           <path d="M4 7h16M4 12h16M4 17h16"></path>
         </svg>
@@ -63,6 +109,25 @@ import { site, nav } from '../data/site';
       menuBtn?.setAttribute('aria-expanded', 'false');
     }),
   );
+
+  const langMenu = document.getElementById('lang-menu');
+  const langBtn = document.getElementById('lang-toggle');
+  const langList = document.getElementById('lang-list');
+  const setLang = (open: boolean) => {
+    if (!langList || !langBtn) return;
+    langList.hidden = !open;
+    langBtn.setAttribute('aria-expanded', String(open));
+  };
+  langBtn?.addEventListener('click', () => setLang(langBtn.getAttribute('aria-expanded') !== 'true'));
+  document.addEventListener('click', (e) => {
+    if (langMenu && !langMenu.contains(e.target as Node)) setLang(false);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      setLang(false);
+      langBtn?.focus();
+    }
+  });
 
   const onScroll = () => header?.classList.toggle('scrolled', window.scrollY > 8);
   onScroll();
@@ -115,6 +180,7 @@ import { site, nav } from '../data/site';
     min-width: 0;
   }
   .name {
+    white-space: nowrap;
     font-weight: 600;
     font-size: 19px;
     letter-spacing: -0.01em;
@@ -154,6 +220,67 @@ import { site, nav } from '../data/site';
   .tools {
     display: flex;
     gap: 6px;
+  }
+  .lang {
+    position: relative;
+  }
+  .lang-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 40px;
+    padding: 0 10px 0 11px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink-2);
+    font: 600 13px/1 var(--font-sans);
+    cursor: pointer;
+  }
+  .lang-btn:hover {
+    color: var(--brand);
+    border-color: var(--line-strong);
+  }
+  .caret {
+    transition: transform 0.2s ease;
+  }
+  .lang-btn[aria-expanded='true'] .caret {
+    transform: rotate(180deg);
+  }
+  .lang-list {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    min-width: 150px;
+    margin: 0;
+    padding: 6px;
+    list-style: none;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    z-index: 60;
+  }
+  .lang-list[hidden] {
+    display: none;
+  }
+  .lang-list a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--ink-2);
+  }
+  .lang-list a:hover {
+    background: var(--surface-2);
+    color: var(--brand);
+  }
+  .lang-list a[aria-current='true'] {
+    color: var(--brand);
+    font-weight: 600;
   }
   .icon-btn {
     display: grid;
