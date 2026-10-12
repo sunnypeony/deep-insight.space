@@ -1,28 +1,43 @@
 ---
-import { getCollection } from 'astro:content';
+// 板块页：内容来自 content/topics/<lang>/<slug>.md；正文（可选）显示为板块导语。
+import { render } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { topics, type Topic } from '../data/site';
+import Prose from '../components/Prose.astro';
+import { byDateDesc, entryHref, getLocalized, getTopics, hasBody, isVisible } from '../lib/content';
 import { localizePath, useT, type Lang } from '../i18n';
 
-const { topic, lang } = Astro.props as { topic: Topic; lang: Lang };
+const { slug, lang } = Astro.props as { slug: string; lang: Lang };
 const t = useT(lang);
-const href = (slug: string) => localizePath(`/topics/${slug}/`, lang);
-const i = topics.findIndex((t) => t.slug === topic.slug);
+const topics = await getTopics(lang);
+const i = topics.findIndex((tp) => tp.slug === slug);
+const { entry } = topics[i];
+const topic = entry.data;
 const prev = topics[i - 1];
 const next = topics[i + 1];
-const notes = (await getCollection('notes', ({ data }) => data.topic === topic.slug))
-  .filter((n) => import.meta.env.DEV || !n.data.draft)
-  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+const { Content } = await render(entry);
+const notes = (await getLocalized('notes', lang))
+  .filter((n) => n.entry.data.topic === slug && isVisible(n.entry))
+  .sort(byDateDesc);
 ---
 
-<BaseLayout lang={lang} title={topic.title[lang]} description={topic.summary[lang]}>
+<BaseLayout lang={lang} title={topic.title} description={topic.summary}>
   <section class="container head">
     <a class="back" href={`${localizePath('/', lang)}#map`}>{t.backToMap}</a>
-    <p class="eyebrow">{topic.index} / {topic.en}</p>
-    <h1>{topic.title[lang]}</h1>
-    <p class="summary">{topic.summary[lang]}</p>
-    <ul class="kw">{topic.keywords.map((k) => <li class="chip">{k[lang]}</li>)}</ul>
+    <p class="eyebrow">{String(i + 1).padStart(2, '0')} / {topic.eyebrow}</p>
+    <h1>{topic.title}</h1>
+    <p class="summary">{topic.summary}</p>
+    <ul class="kw">{topic.keywords.map((k) => <li class="chip">{k}</li>)}</ul>
   </section>
+
+  {
+    hasBody(entry) && (
+      <section class="container intro">
+        <Prose>
+          <Content />
+        </Prose>
+      </section>
+    )
+  }
 
   <section class="container body">
     <div>
@@ -30,18 +45,18 @@ const notes = (await getCollection('notes', ({ data }) => data.topic === topic.s
       {
         notes.length ? (
           <ul class="list">
-            {notes.map((n) => {
-              const text = lang === 'en' && n.data.en ? n.data.en : n.data;
-              return (
+            {notes.map((n) => (
               <li>
-                <a href={`/notes/${n.id}/`}>
-                  <span class="t">{text.title}</span>
-                  <span class="d">{text.description}</span>
-                  {n.data.draft && <span class="chip chip-soon">{t.draftLocal}</span>}
+                <a href={entryHref('notes', n.lang, n.slug)}>
+                  <span class="t">{n.entry.data.title}</span>
+                  <span class="d">{n.entry.data.summary}</span>
+                  <span class="badges">
+                    {n.fallback && <span class="chip">{t.otherLang}</span>}
+                    {n.entry.data.draft && <span class="chip chip-soon">{t.draftBadge}</span>}
+                  </span>
                 </a>
               </li>
-              );
-            })}
+            ))}
           </ul>
         ) : (
           <p class="empty">{t.empty}</p>
@@ -54,8 +69,8 @@ const notes = (await getCollection('notes', ({ data }) => data.topic === topic.s
         {
           topic.outline.map((o) => (
             <li>
-              <span class="t">{o.title[lang]}</span>
-              <span class="d">{o.question[lang]}</span>
+              <span class="t">{o.title}</span>
+              <span class="d">{o.question}</span>
             </li>
           ))
         }
@@ -64,8 +79,8 @@ const notes = (await getCollection('notes', ({ data }) => data.topic === topic.s
   </section>
 
   <nav class="container pager" aria-label={t.adjacent}>
-    {prev ? <a href={href(prev.slug)}>← {prev.title[lang]}</a> : <span />}
-    {next && <a href={href(next.slug)}>{next.title[lang]} →</a>}
+    {prev ? <a href={entryHref('topics', lang, prev.slug)}>← {prev.entry.data.title}</a> : <span />}
+    {next && <a href={entryHref('topics', lang, next.slug)}>{next.entry.data.title} →</a>}
   </nav>
 </BaseLayout>
 
@@ -99,6 +114,15 @@ const notes = (await getCollection('notes', ({ data }) => data.topic === topic.s
     list-style: none;
     margin: 24px 0 0;
     padding: 0;
+  }
+  .intro {
+    max-width: calc(760px + var(--gutter) * 2);
+    margin-inline: 0;
+    padding-bottom: 24px;
+  }
+  .badges {
+    display: flex;
+    gap: 6px;
   }
   .body {
     display: grid;

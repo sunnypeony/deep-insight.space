@@ -1,15 +1,10 @@
 ---
 title: 四元数从哪里来，又为什么适合表示旋转？
-description: 从 Hamilton 在布鲁姆桥上刻下的公式出发，理解单位四元数与三维旋转的关系。
-topic: foundations
-label: 机器人
+summary: 从 Hamilton 在布鲁姆桥上刻下的公式出发，理解单位四元数与三维旋转的关系。
 date: 2026-10-10
+topic: foundations
+tags: [quaternions, rotation, history of math]
 draft: true
-lang: zh
-en:
-  title: 'Where do quaternions come from, and why are they good at rotations?'
-  description: 'Starting from the formula Hamilton carved on Brougham Bridge, connect unit quaternions to 3D rotation.'
-  label: Robotics
 ---
 
 ## 问题是什么

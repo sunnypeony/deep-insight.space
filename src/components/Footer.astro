@@ -1,6 +1,8 @@
 ---
-import { site } from '../data/site';
+import { getSettings } from '../lib/content';
 import { useT, type Lang } from '../i18n';
+
+const site = await getSettings();
 
 const { lang } = Astro.props as { lang: Lang };
 const t = useT(lang);
@@ -15,11 +17,11 @@ const year = new Date().getFullYear();
     <p class="meta">
       {t.footerLang}
       <span aria-hidden="true">·</span>
-      <a href={site.linkedin} rel="noopener">LinkedIn</a>
+      <a href={site.links.linkedin} rel="noopener">LinkedIn</a>
       <span aria-hidden="true">·</span>
-      <a href={site.github} rel="noopener">GitHub</a>
+      <a href={site.links.github} rel="noopener">GitHub</a>
       <span aria-hidden="true">·</span>
-      <a href={site.youtubeChannel} rel="noopener">YouTube</a>
+      <a href={site.links.youtube} rel="noopener">YouTube</a>
       <span aria-hidden="true">·</span>
       © {year}
     </p>

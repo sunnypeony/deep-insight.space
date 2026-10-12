@@ -1,0 +1,109 @@
+---
+// 文章页：content/notes/<lang>/<slug>.md(x)
+import { render, type CollectionEntry } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Prose from '../components/Prose.astro';
+import YouTube from '../components/YouTube.astro';
+import { mdxComponents } from '../components/mdx';
+import { entryHref, formatDate, getTopics, getTranslation, splitId } from '../lib/content';
+import { localizePath, useT } from '../i18n';
+
+const { entry } = Astro.props as { entry: CollectionEntry<'notes'> };
+const { lang, slug } = splitId(entry.id);
+const t = useT(lang);
+const d = entry.data;
+const { Content } = await render(entry);
+const topic = (await getTopics(lang)).find((tp) => tp.slug === d.topic)!;
+const translation = await getTranslation('notes', lang, slug);
+const alternates = {
+  [lang]: entryHref('notes', lang, slug),
+  ...(translation ? { [splitId(translation.id).lang]: entryHref('notes', splitId(translation.id).lang, slug) } : {}),
+};
+---
+
+<BaseLayout lang={lang} title={d.title} description={d.summary} alternates={alternates}>
+  <article class="container article">
+    <header>
+      <a class="back" href={localizePath('/notes/', lang)}>{t.backToNotes}</a>
+      <p class="eyebrow"><a href={entryHref('topics', lang, d.topic)}>{topic.entry.data.title}</a></p>
+      <h1>{d.title}</h1>
+      <p class="desc">{d.summary}</p>
+      <p class="meta">
+        <time datetime={d.date.toISOString()}>{formatDate(d.date, lang)}</time>
+        {d.updated && <span>· {t.updated} {formatDate(d.updated, lang)}</span>}
+        {d.draft && <span class="chip chip-soon">{t.draftBadge}</span>}
+      </p>
+    </header>
+
+    {
+      d.youtubeId && (
+        <div class="video">
+          <YouTube id={d.youtubeId} title={d.title} lang={lang} />
+        </div>
+      )
+    }
+
+    <Prose>
+      <Content components={mdxComponents} />
+    </Prose>
+
+    {
+      d.tags.length > 0 && (
+        <footer class="foot">
+          <span class="sr-only">{t.tags}</span>
+          {d.tags.map((tag) => (
+            <span class="chip">#{tag}</span>
+          ))}
+        </footer>
+      )
+    }
+  </article>
+</BaseLayout>
+
+<style>
+  .article {
+    max-width: calc(760px + var(--gutter) * 2);
+    padding-block: clamp(40px, 7vw, 80px);
+  }
+  .back {
+    display: inline-block;
+    margin-bottom: 28px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .back:hover,
+  .eyebrow a:hover {
+    color: var(--brand);
+  }
+  h1 {
+    margin-top: 14px;
+    font-size: clamp(30px, 4.4vw, 44px);
+  }
+  .desc {
+    margin-top: 16px;
+    font-size: 18px;
+    color: var(--ink-2);
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    margin-top: 18px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--line);
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .video {
+    margin-top: 32px;
+  }
+  .foot {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+  }
+</style>

@@ -1,0 +1,16 @@
+---
+// MDX 用法：<YouTube id="dQw4w9WgXcQ" title="视频标题" />，界面语言取自页面网址
+import YouTube from '../YouTube.astro';
+import { stripLang } from '../../i18n';
+
+const { id, title } = Astro.props as { id: string; title: string };
+const lang = stripLang(Astro.url.pathname) === Astro.url.pathname ? 'en' : 'zh';
+---
+
+<div class="embed"><YouTube id={id} title={title} lang={lang} /></div>
+
+<style>
+  .embed {
+    margin: 1.8em 0;
+  }
+</style>

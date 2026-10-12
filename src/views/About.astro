@@ -1,0 +1,143 @@
+---
+// About 页：content/pages/<lang>/about.md
+import { render } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Prose from '../components/Prose.astro';
+import { mdxComponents } from '../components/mdx';
+import { formatDate, getPage, getSettings } from '../lib/content';
+import { useT, type Lang } from '../i18n';
+
+const { lang } = Astro.props as { lang: Lang };
+const t = useT(lang);
+const site = await getSettings();
+const page = await getPage(lang, 'about');
+const d = page.data;
+const { Content } = await render(page);
+---
+
+<BaseLayout lang={lang} title={d.title} description={d.description}>
+  <div class="container wrap">
+    <aside class="side">
+      <p class="eyebrow">About</p>
+      <h1>
+        {
+          d.headline
+            .trim()
+            .split('\n')
+            .map((line, i) => (
+              <>
+                {i > 0 && <br />}
+                {line}
+              </>
+            ))
+        }
+      </h1>
+      <ol class="journey" aria-label={t.journeyLabel}>
+        {d.journey.map((j) => <li>{j}</li>)}
+      </ol>
+      <div class="links">
+        <a href={site.links.linkedin} target="_blank" rel="noopener">LinkedIn ↗</a>
+        <a href={site.links.github} target="_blank" rel="noopener">GitHub ↗</a>
+        <a href={site.links.youtube} target="_blank" rel="noopener">YouTube ↗</a>
+        {site.links.email && <a href={`mailto:${site.links.email}`}>Email ↗</a>}
+      </div>
+    </aside>
+    <article class="main">
+      <p class="lead">{d.summary}</p>
+      <Prose>
+        <Content components={mdxComponents} />
+      </Prose>
+      {d.updated && <p class="updated">{t.updated} {formatDate(d.updated, lang)}</p>}
+    </article>
+  </div>
+</BaseLayout>
+
+<style>
+  .wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.6fr);
+    gap: clamp(32px, 6vw, 80px);
+    padding-block: clamp(40px, 7vw, 88px);
+    align-items: start;
+  }
+  .side {
+    position: sticky;
+    top: 108px;
+    padding: clamp(24px, 3vw, 34px);
+    border-radius: var(--radius-lg);
+    background: var(--surface-2);
+  }
+  h1 {
+    margin-top: 16px;
+    font-size: clamp(24px, 2.4vw, 30px);
+    line-height: 1.35;
+  }
+  .journey {
+    list-style: none;
+    margin: 24px 0 0;
+    padding: 22px 0 0;
+    border-top: 1px solid var(--line-strong);
+  }
+  .journey li {
+    position: relative;
+    padding: 0 0 14px 22px;
+    font-size: 14px;
+    color: var(--ink-2);
+  }
+  .journey li::before {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 8px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1.5px solid var(--brand);
+    background: var(--surface-2);
+  }
+  .journey li:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 18px;
+    bottom: 0;
+    width: 1px;
+    background: var(--line-strong);
+  }
+  .journey li:last-child {
+    padding-bottom: 0;
+    color: var(--brand);
+    font-weight: 600;
+  }
+  .journey li:last-child::before {
+    background: var(--brand);
+  }
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 24px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--brand);
+  }
+  .lead {
+    font-family: var(--font-serif);
+    font-size: clamp(20px, 2.2vw, 24px);
+    line-height: 1.6;
+    color: var(--ink);
+  }
+  .updated {
+    margin-top: 40px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  @media (max-width: 900px) {
+    .wrap {
+      grid-template-columns: 1fr;
+    }
+    .side {
+      position: static;
+    }
+  }
+</style>

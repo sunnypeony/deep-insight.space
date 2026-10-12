@@ -2,7 +2,9 @@
 
 Start from geometry, learn how machines see the world — a personal knowledge site on coordinate transforms, quaternions, 3D perception, SLAM and world models.
 
-A fully static site built with [Astro](https://astro.build): notes in Markdown, math rendered with KaTeX, lightweight YouTube embeds, automatic light/dark mode, and English/Chinese versions of every page.
+A fully static site built with [Astro](https://astro.build): notes in Markdown/MDX, math rendered with KaTeX, lightweight YouTube embeds, automatic light/dark mode, and English/Chinese versions of every page.
+
+The site is **content-driven**: every word a reader sees lives in [`content/`](content/), and the components in `src/` only render it. **[CONTENT_GUIDE.md](CONTENT_GUIDE.md)** is the interface spec — which file drives which page, the allowed frontmatter fields, and the body structure for notes, projects and the About page.
 
 ## Run locally
 
@@ -21,45 +23,34 @@ npm run check      # type-check .astro and .ts files
 ## Project structure
 
 ```
+content/                         ← all site content (see CONTENT_GUIDE.md)
+├─ settings.yaml                 ← site name, author, LinkedIn / GitHub / YouTube links
+├─ pages/{en,zh}/home.md         ← homepage copy
+├─ pages/{en,zh}/about.md        ← About page
+├─ topics/{en,zh}/*.md           ← knowledge-map tracks
+├─ notes/{en,zh}/*.md(x)         ← notes / blog posts
+├─ projects/{en,zh}/*.md(x)      ← projects
+├─ videos/{en,zh}/*.md           ← video cards
+├─ assets/<slug>/                ← images used in notes and projects
+└─ _templates/                   ← copy-ready skeletons (ignored by the build)
 src/
-├─ data/site.ts                  ← site content: 5 tracks, projects, videos, profile links (bilingual; the file you'll edit most)
-├─ i18n.ts                       ← UI strings in English and Chinese, plus language helpers
-├─ content/notes/*.md            ← notes (Markdown + math)
-│  └─ _template.md               ← note template: Question → Intuition → Formalism → Robotics → Experiment → References
-├─ components/
-│  ├─ FrameViz.astro             ← interactive quaternion-driven coordinate frame on the homepage
-│  ├─ YouTube.astro              ← YouTube player that loads only on click
-│  └─ Header.astro / Footer.astro
-├─ views/Home.astro, Topic.astro ← shared homepage / track page templates (used by both languages)
+├─ content.config.ts             ← frontmatter schema for every content type (the enforced contract)
+├─ lib/content.ts                ← content lookup: by language, translations, validation
+├─ i18n.ts                       ← interface labels (buttons, badges, aria) in English and Chinese
+├─ views/                        ← page templates: Home, About, Topic, Note, Project, NotesIndex
+├─ pages/                        ← routes only; /zh/ mirrors the English routes
+├─ components/                   ← header, footer, interactive frame, YouTube, Prose, MDX components
 ├─ layouts/BaseLayout.astro
-├─ pages/
-│  ├─ index.astro                ← English homepage / (default language)
-│  ├─ zh/                        ← Chinese pages /zh/, /zh/topics/...
-│  ├─ topics/[slug].astro        ← track pages, e.g. /topics/foundations/
-│  └─ notes/[...slug].astro      ← note pages /notes/<file-name>/
 └─ styles/global.css             ← design tokens: colors, fonts, dark mode
 public/                          ← favicon, robots.txt
 ```
 
-## Languages
+## Adding content
 
-- English is the default language (`/`); Chinese lives under `/zh/`. The globe icon in the top-right of the header opens the language menu.
-- To change copy: content goes in `src/data/site.ts` (as `{ en, zh }` pairs); UI text such as buttons and headings goes in `src/i18n.ts`.
-- Each note body is written in one language (`lang` in the frontmatter, default `zh`). The optional `en:` field supplies the title, description and label shown on the English homepage and track pages.
-- The "About the author" button on the homepage links to `site.linkedin` (currently https://www.linkedin.com/in/danyang-huang/).
-
-## Writing notes
-
-1. Copy `src/content/notes/_template.md` and give it a short English file name, e.g. `quaternion-origin.md` (the file name becomes the URL).
-2. Fill in the frontmatter. `topic` must be one of `foundations | transforms | perception | world-models | projects`.
-3. Keep `draft: true` while writing: drafts can be previewed in dev mode, but the production site only lists them as "Writing" on the homepage and does not generate a page.
-4. When finished, set `draft: false`, then commit and push to publish.
-5. If the note has a companion video, add `youtubeId: xxxxxxxxxxx` to the frontmatter; the player is embedded at the top of the note with an "Open on YouTube" link.
-
-Math: inline `$e^{i\theta}$`, display blocks with `$$ ... $$`.
-
-The video cards on the homepage come from `videos` in `src/data/site.ts`; adding a `youtubeId` turns an "In production" placeholder into a playable video.
-Remember to replace `site.youtubeChannel` with the real channel URL.
+1. Pick the template from `content/_templates/` (or get a finished file from Claude chat — see the hand-off protocol in [CONTENT_GUIDE.md](CONTENT_GUIDE.md#7-hand-off-protocol)).
+2. Save it at `content/<type>/<en|zh>/<slug>.md`; the file name becomes the URL.
+3. Run `npm run dev` to preview (drafts are visible locally), then `npm run build` — unknown fields, bad dates or a wrong `topic` fail with a clear message.
+4. Set `draft: false`, commit and push to publish.
 
 ## Deploy to deepinsight.space (Vercel)
 
