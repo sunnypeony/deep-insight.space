@@ -1,0 +1,38 @@
+---
+title: Where do quaternions come from, and why are they good at rotations?
+summary: Starting from the formula Hamilton carved on Brougham Bridge, connect unit quaternions to 3D rotation.
+date: 2026-10-10
+topic: foundations
+tags: [quaternions, rotation, history of math]
+draft: true
+---
+
+## The question
+
+Complex numbers describe 2D rotations elegantly. What about 3D?
+
+<Callout title="Why this matters">
+Every IMU, every `geometry_msgs/Quaternion` and every SLAM pose graph stores orientation this way.
+</Callout>
+
+## Intuition
+
+(To be written: start from complex multiplication = rotation + scaling.)
+
+## Formalism
+
+$$
+i^2 = j^2 = k^2 = ijk = -1
+$$
+
+$$
+q = \cos\tfrac{\theta}{2} + \sin\tfrac{\theta}{2}\,(u_x i + u_y j + u_z k)
+$$
+
+## In robotics
+
+(To be written: `geometry_msgs/Quaternion` in ROS, IMU orientation, slerp interpolation.)
+
+## References
+
+(To be written)

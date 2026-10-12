@@ -1,46 +1,78 @@
 ---
-import { getCollection } from 'astro:content';
+// 首页：只负责渲染。文案来自 content/pages/<lang>/home.md 与 about.md，
+// 列表来自 content/topics、notes、projects、videos。
 import BaseLayout from '../layouts/BaseLayout.astro';
 import FrameViz from '../components/FrameViz.astro';
 import YouTube from '../components/YouTube.astro';
-import { site, topics, projects, videos, journey, articleRecipe } from '../data/site';
+import {
+  assertNoteTopics,
+  byDateDesc,
+  emphasisLines,
+  entryHref,
+  getLocalized,
+  getPage,
+  getSettings,
+  getTopics,
+  hasBody,
+  isVisible,
+} from '../lib/content';
 import { localizePath, useT, type Lang } from '../i18n';
 
 const { lang } = Astro.props as { lang: Lang };
 const t = useT(lang);
-const topicHref = (slug: string) => localizePath(`/topics/${slug}/`, lang);
-// 英文首页优先使用文章 frontmatter 里的 en 字段
-const noteText = (n: (typeof allNotes)[number]) => (lang === 'en' && n.data.en ? n.data.en : n.data);
+await assertNoteTopics();
+
+const site = await getSettings();
+const home = (await getPage(lang, 'home')).data;
+const about = (await getPage(lang, 'about')).data;
+const topics = await getTopics(lang);
+const topicTitle = new Map(topics.map((tp) => [tp.slug, tp.entry.data.title]));
 
 // 首页列出全部笔记；草稿显示为“撰写中”，不生成链接（开发模式下可点击预览）
-const allNotes = (await getCollection('notes')).sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+const allNotes = (await getLocalized('notes', lang)).sort(byDateDesc);
 const notes = allNotes.slice(0, 5);
-const linkable = (draft: boolean) => !draft || import.meta.env.DEV;
-const countByTopic = (slug: string) => allNotes.filter((n) => n.data.topic === slug && !n.data.draft).length;
+const countByTopic = (slug: string) => allNotes.filter((n) => n.entry.data.topic === slug && !n.entry.data.draft).length;
+
+const projects = (await getLocalized('projects', lang)).sort((a, b) => a.entry.data.order - b.entry.data.order);
+const projectHref = (p: (typeof projects)[number]) =>
+  hasBody(p.entry) && isVisible(p.entry) ? entryHref('projects', p.lang, p.slug) : undefined;
+
+const videos = (await getLocalized('videos', lang)).sort(byDateDesc);
+const noteSlugs = new Map(allNotes.map((n) => [n.slug, n]));
+const recipe = home.sections.recipe;
 ---
 
-<BaseLayout lang={lang}>
+<BaseLayout lang={lang} description={home.description}>
   <!-- ───────── Hero ───────── -->
   <section class="hero container">
     <div class="hero-copy">
-      <p class="eyebrow">{t.eyebrow}</p>
-      <h1 class:list={[lang]}>{t.heroLines[0]}<br />{t.heroLines[1]}<br /><em>{t.heroEm}</em>{t.heroTail}</h1>
-      <p class="lede">{t.lede}</p>
+      <p class="eyebrow">{home.hero.eyebrow}</p>
+      <h1 class:list={[lang]}>
+        {
+          emphasisLines(home.hero.title).map((line, i) => (
+            <>
+              {i > 0 && <br />}
+              {line.map((part) => (part.em ? <em>{part.text}</em> : part.text))}
+            </>
+          ))
+        }
+      </h1>
+      <p class="lede">{home.hero.lede}</p>
       <div class="cta">
         <a class="btn btn-primary" href="#map">
-          {t.ctaMap}
+          {home.hero.primaryCta}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"></path></svg>
         </a>
-        <a class="btn btn-ghost" href={site.linkedin} target="_blank" rel="noopener">
+        <a class="btn btn-ghost" href={site.links.linkedin} target="_blank" rel="noopener">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28ZM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13ZM7.12 20.45H3.56V9h3.56v11.45ZM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0Z"></path></svg>
-          {t.ctaAuthor}
+          {home.hero.authorCta}
           <span class="sr-only">(LinkedIn)</span>
         </a>
       </div>
       <dl class="stats">
-        <div><dt>{t.stats.tracks}</dt><dd>{topics.length}</dd></div>
-        <div><dt>{t.stats.notes}</dt><dd>{allNotes.length}</dd></div>
-        <div><dt>{t.stats.thread}</dt><dd>{t.stats.threadValue}</dd></div>
+        <div><dt>{home.stats.tracks}</dt><dd>{topics.length}</dd></div>
+        <div><dt>{home.stats.notes}</dt><dd>{allNotes.length}</dd></div>
+        <div><dt>{home.stats.thread}</dt><dd>{home.stats.threadValue}</dd></div>
       </dl>
     </div>
     <div class="hero-viz">
@@ -52,28 +84,29 @@ const countByTopic = (slug: string) => allNotes.filter((n) => n.data.topic === s
   <section id="map" class="section container">
     <div class="section-head reveal">
       <div>
-        <p class="eyebrow">{t.mapEyebrow}</p>
-        <h2>{t.mapTitle}</h2>
+        <p class="eyebrow">{home.sections.map.eyebrow}</p>
+        <h2>{home.sections.map.title}</h2>
       </div>
-      <p class="aside">{t.mapAside}</p>
+      {home.sections.map.aside && <p class="aside">{home.sections.map.aside}</p>}
     </div>
 
     <ol class="route reveal" aria-label={t.routeLabel}>
       {
-        topics.map((tp) => {
-          const n = countByTopic(tp.slug);
+        topics.map(({ slug, entry }, i) => {
+          const n = countByTopic(slug);
+          const tp = entry.data;
           return (
             <li>
-              <a class="topic" href={topicHref(tp.slug)}>
+              <a class="topic" href={entryHref('topics', lang, slug)}>
                 <span class="node" aria-hidden="true" />
                 <span class="topic-index">
-                  {tp.index} / {tp.en}
+                  {String(i + 1).padStart(2, '0')} / {tp.eyebrow}
                 </span>
-                <h3>{tp.title[lang]}</h3>
-                <p class="topic-summary">{tp.summary[lang]}</p>
+                <h3>{tp.title}</h3>
+                <p class="topic-summary">{tp.summary}</p>
                 <ul class="kw">
                   {tp.keywords.map((k) => (
-                    <li>{k[lang]}</li>
+                    <li>{k}</li>
                   ))}
                 </ul>
                 <span class="topic-foot">
@@ -94,16 +127,16 @@ const countByTopic = (slug: string) => allNotes.filter((n) => n.data.topic === s
   <section class="recipe-wrap container reveal" aria-labelledby="recipe-title">
     <div class="recipe">
       <div class="recipe-head">
-        <p class="eyebrow">{t.recipeEyebrow}</p>
-        <h2 id="recipe-title">{t.recipeTitle}</h2>
+        <p class="eyebrow">{recipe.eyebrow}</p>
+        <h2 id="recipe-title">{recipe.title}</h2>
       </div>
       <ol class="steps">
         {
-          articleRecipe.map((s, i) => (
+          recipe.steps.map((s, i) => (
             <li>
               <span class="step-n">{String(i + 1).padStart(2, '0')}</span>
-              <span class="step-t">{s.step[lang]}</span>
-              <span class="step-d">{s.desc[lang]}</span>
+              <span class="step-t">{s.step}</span>
+              <span class="step-d">{s.desc}</span>
             </li>
           ))
         }
@@ -116,24 +149,25 @@ const countByTopic = (slug: string) => allNotes.filter((n) => n.data.topic === s
     <div class="notes reveal">
       <div class="section-head">
         <div>
-          <p class="eyebrow">{t.notesEyebrow}</p>
-          <h2>{t.notesTitle}</h2>
+          <p class="eyebrow">{home.sections.notes.eyebrow}</p>
+          <h2>{home.sections.notes.title}</h2>
         </div>
-        <p class="aside">{t.notesAside}</p>
+        {home.sections.notes.aside && <p class="aside">{home.sections.notes.aside}</p>}
       </div>
       <ul class="note-list">
         {
           notes.map((n) => {
-            const text = noteText(n);
+            const d = n.entry.data;
             const inner = (
               <>
-                <span class="note-label">{text.label}</span>
+                <span class="note-label">{topicTitle.get(d.topic)}</span>
                 <span class="note-main">
-                  <span class="note-title">{text.title}</span>
-                  <span class="note-desc">{text.description}</span>
+                  <span class="note-title">{d.title}</span>
+                  <span class="note-desc">{d.summary}</span>
                 </span>
                 <span class="note-meta">
-                  {n.data.draft ? (
+                  {n.fallback && <span class="chip">{t.otherLang}</span>}
+                  {d.draft ? (
                     <span class="chip chip-soon">{t.draft}</span>
                   ) : (
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
@@ -145,8 +179,8 @@ const countByTopic = (slug: string) => allNotes.filter((n) => n.data.topic === s
             );
             return (
               <li>
-                {linkable(n.data.draft) ? (
-                  <a class="note" href={`/notes/${n.id}/`}>
+                {isVisible(n.entry) ? (
+                  <a class="note" href={entryHref('notes', n.lang, n.slug)}>
                     {inner}
                   </a>
                 ) : (
@@ -157,20 +191,33 @@ const countByTopic = (slug: string) => allNotes.filter((n) => n.data.topic === s
           })
         }
       </ul>
+      <a class="more-link" href={localizePath('/notes/', lang)}>{t.allNotes} →</a>
     </div>
 
     <aside id="about" class="about reveal" aria-labelledby="about-title">
-      <p class="eyebrow">{t.aboutEyebrow}</p>
-      <h2 id="about-title" class:list={['about-title', lang]}>{t.aboutTitle[0]}<br />{t.aboutTitle[1]}</h2>
-      <p class="about-body">{t.aboutBody(site.author)}</p>
+      <p class="eyebrow">About this space</p>
+      <h2 id="about-title" class:list={['about-title', lang]}>
+        {
+          about.headline
+            .trim()
+            .split('\n')
+            .map((line, i) => (
+              <>
+                {i > 0 && <br />}
+                {line}
+              </>
+            ))
+        }
+      </h2>
+      <p class="about-body">{about.summary}</p>
       <ol class="journey" aria-label={t.journeyLabel}>
-        {journey.map((j) => <li>{j}</li>)}
+        {about.journey.map((j) => <li>{j}</li>)}
       </ol>
       <div class="about-links">
-        <a href={site.linkedin} target="_blank" rel="noopener">LinkedIn ↗</a>
-        <a href={site.github} target="_blank" rel="noopener">GitHub ↗</a>
-        <a href={site.youtubeChannel} rel="noopener">YouTube ↗</a>
-        {site.email && <a href={`mailto:${site.email}`}>Email ↗</a>}
+        <a href={localizePath('/about/', lang)}>{t.readMore} →</a>
+        <a href={site.links.linkedin} target="_blank" rel="noopener">LinkedIn ↗</a>
+        <a href={site.links.github} target="_blank" rel="noopener">GitHub ↗</a>
+        {site.links.email && <a href={`mailto:${site.links.email}`}>Email ↗</a>}
       </div>
     </aside>
   </section>
@@ -179,28 +226,32 @@ const countByTopic = (slug: string) => allNotes.filter((n) => n.data.topic === s
   <section id="projects" class="section container">
     <div class="section-head reveal">
       <div>
-        <p class="eyebrow">{t.projectsEyebrow}</p>
-        <h2>{t.projectsTitle}</h2>
+        <p class="eyebrow">{home.sections.projects.eyebrow}</p>
+        <h2>{home.sections.projects.title}</h2>
       </div>
-      <p class="aside">{t.projectsAside}</p>
+      {home.sections.projects.aside && <p class="aside">{home.sections.projects.aside}</p>}
     </div>
     <div class="projects">
       {
-        projects.map((p, i) => (
-          <article class="project reveal">
-            <div class="project-top">
-              <span class="project-n">P{String(i + 1).padStart(2, '0')}</span>
-              <span class={p.status === 'planned' ? 'chip chip-soon' : 'chip chip-live'}>{t.status[p.status]}</span>
-            </div>
-            <h3>{p.href ? <a href={p.href}>{p.name}</a> : p.name}</h3>
-            <p>{p.summary[lang]}</p>
-            <ul class="tags">
-              {p.tags.map((t) => (
-                <li class="chip">{t}</li>
-              ))}
-            </ul>
-          </article>
-        ))
+        projects.map((p, i) => {
+          const d = p.entry.data;
+          const href = projectHref(p);
+          return (
+            <article class="project reveal">
+              <div class="project-top">
+                <span class="project-n">P{String(i + 1).padStart(2, '0')}</span>
+                <span class={d.status === 'planned' ? 'chip chip-soon' : 'chip chip-live'}>{t.status[d.status]}</span>
+              </div>
+              <h3>{href ? <a href={href}>{d.title} →</a> : d.title}</h3>
+              <p>{d.summary}</p>
+              <ul class="tags">
+                {d.tags.map((tag) => (
+                  <li class="chip">{tag}</li>
+                ))}
+              </ul>
+            </article>
+          );
+        })
       }
     </div>
   </section>
@@ -213,29 +264,33 @@ const countByTopic = (slug: string) => allNotes.filter((n) => n.data.topic === s
           <svg viewBox="0 0 24 24" width="20" height="20"><path d="M8 5v14l11-7z" fill="currentColor"></path></svg>
         </span>
         <div>
-          <p class="eyebrow">{t.videosEyebrow}</p>
-          <h2>{t.videosTitle}</h2>
-          <p class="aside">{t.videosAside}</p>
+          <p class="eyebrow">{home.sections.videos.eyebrow}</p>
+          <h2>{home.sections.videos.title}</h2>
+          {home.sections.videos.aside && <p class="aside">{home.sections.videos.aside}</p>}
         </div>
-        <a class="btn btn-ghost videos-cta" href={site.youtubeChannel} target="_blank" rel="noopener">{t.videosCta} ↗</a>
+        <a class="btn btn-ghost videos-cta" href={site.links.youtube} target="_blank" rel="noopener">{home.sections.videos.cta} ↗</a>
       </div>
 
       <div class="video-grid">
         {
-          videos.map((v) => (
-            <article class="video">
-              {v.youtubeId ? (
-                <YouTube id={v.youtubeId} title={v.title[lang]} lang={lang} />
-              ) : (
-                <div class="video-placeholder" aria-hidden="true">
-                  <span class="chip chip-soon">{t.inProduction}</span>
-                </div>
-              )}
-              <p class="video-topic">{v.topic[lang]}</p>
-              <h3>{v.title[lang]}</h3>
-              <p class="video-summary">{v.summary[lang]}</p>
-            </article>
-          ))
+          videos.map((v) => {
+            const d = v.entry.data;
+            const note = d.note ? noteSlugs.get(d.note) : undefined;
+            return (
+              <article class="video">
+                {d.youtubeId ? (
+                  <YouTube id={d.youtubeId} title={d.title} lang={lang} />
+                ) : (
+                  <div class="video-placeholder" aria-hidden="true">
+                    <span class="chip chip-soon">{t.inProduction}</span>
+                  </div>
+                )}
+                <p class="video-topic">{d.label}</p>
+                <h3>{note && isVisible(note.entry) ? <a href={entryHref('notes', note.lang, note.slug)}>{d.title}</a> : d.title}</h3>
+                <p class="video-summary">{d.summary}</p>
+              </article>
+            );
+          })
         }
       </div>
     </div>
@@ -495,7 +550,21 @@ const countByTopic = (slug: string) => allNotes.filter((n) => n.data.topic === s
     color: var(--muted);
   }
   .note-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     color: var(--muted);
+  }
+  .more-link {
+    display: inline-block;
+    margin-top: 22px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--brand);
+  }
+  .project h3 a:hover,
+  .video h3 a:hover {
+    color: var(--brand);
   }
   .is-draft .note-title {
     color: var(--ink-2);

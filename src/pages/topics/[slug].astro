@@ -1,10 +1,10 @@
 ---
 import Topic from '../../views/Topic.astro';
-import { topics } from '../../data/site';
+import { getTopics } from '../../lib/content';
 
-export function getStaticPaths() {
-  return topics.map((topic) => ({ params: { slug: topic.slug }, props: { topic } }));
+export async function getStaticPaths() {
+  return (await getTopics('en')).map(({ slug }) => ({ params: { slug } }));
 }
 ---
 
-<Topic lang="en" topic={Astro.props.topic} />
+<Topic lang="en" slug={Astro.params.slug} />

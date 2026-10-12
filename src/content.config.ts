@@ -1,32 +1,162 @@
+// 内容接口规范（schema）。所有页面内容都在仓库根目录的 content/ 下，
+// 这里定义每类文件允许的 frontmatter 字段。字段说明见 CONTENT_GUIDE.md。
+//
+// 约定：content/<集合>/<语言>/<slug>.md(x)，语言为 en 或 zh。
+// 未知字段会直接报错（.strict()），以便尽早发现拼写错误。
 import { defineCollection } from 'astro:content';
-import { glob } from 'astro/loaders';
+import { file, glob } from 'astro/loaders';
 import { z } from 'astro/zod';
 
-const notes = defineCollection({
-  // 以下划线开头的文件（如 _template.md）不会被收录
-  loader: glob({ pattern: ['**/*.md', '!**/_*.md'], base: './src/content/notes' }),
-  schema: z.object({
-    title: z.string(),
-    description: z.string(),
-    /** 对应 src/data/site.ts 中 topics 的 slug */
-    topic: z.enum(['foundations', 'transforms', 'perception', 'world-models', 'projects']),
-    /** 首页列表上显示的小标签 */
-    label: z.string(),
-    date: z.coerce.date(),
-    /** 草稿：开发模式可预览，正式构建时不生成页面 */
-    draft: z.boolean().default(false),
-    youtubeId: z.string().optional(),
-    /** 正文所用语言，决定文章页界面的语言 */
-    lang: z.enum(['zh', 'en']).default('zh'),
-    /** 可选：英文版首页 / 专题页上显示的标题、简介和标签 */
-    en: z
-      .object({
-        title: z.string(),
-        description: z.string(),
-        label: z.string(),
-      })
-      .optional(),
-  }),
+const entries = (dir: string) =>
+  glob({ pattern: ['{en,zh}/**/*.{md,mdx}', '!**/_*'], base: `./content/${dir}` });
+
+const slug = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'use lowercase-kebab-case');
+/** 日期必须写成 YYYY-MM-DD */
+const date = z
+  .union([z.date(), z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'use YYYY-MM-DD')])
+  .transform((v) => new Date(v));
+const sectionHead = z
+  .object({ eyebrow: z.string(), title: z.string(), aside: z.string().optional() })
+  .strict();
+
+/** 站点设置：content/settings.yaml */
+const settings = defineCollection({
+  loader: file('./content/settings.yaml'),
+  schema: z
+    .object({
+      name: z.string(),
+      domain: z.string(),
+      tagline: z.string(),
+      author: z.string(),
+      links: z
+        .object({
+          linkedin: z.url(),
+          github: z.url(),
+          youtube: z.url(),
+          email: z.email().optional(),
+        })
+        .strict(),
+    })
+    .strict(),
 });
 
-export const collections = { notes };
+/** 单页：content/pages/<lang>/home.md 与 about.md */
+const pages = defineCollection({
+  loader: entries('pages'),
+  schema: z.discriminatedUnion('page', [
+    z
+      .object({
+        page: z.literal('home'),
+        description: z.string(),
+        hero: z
+          .object({
+            eyebrow: z.string(),
+            /** 多行标题，换行即断行；用 *星号* 包住要强调的词 */
+            title: z.string(),
+            lede: z.string(),
+            primaryCta: z.string(),
+            authorCta: z.string(),
+          })
+          .strict(),
+        stats: z.object({ tracks: z.string(), notes: z.string(), thread: z.string(), threadValue: z.string() }).strict(),
+        sections: z
+          .object({
+            map: sectionHead,
+            recipe: sectionHead.extend({ steps: z.array(z.object({ step: z.string(), desc: z.string() }).strict()) }),
+            notes: sectionHead,
+            projects: sectionHead,
+            videos: sectionHead.extend({ cta: z.string() }),
+          })
+          .strict(),
+      })
+      .strict(),
+    z
+      .object({
+        page: z.literal('about'),
+        title: z.string(),
+        description: z.string(),
+        /** 首页 About 卡片的大标题，换行即断行 */
+        headline: z.string(),
+        /** 首页 About 卡片的一段简介 */
+        summary: z.string(),
+        journey: z.array(z.string()).min(1),
+        updated: date.optional(),
+      })
+      .strict(),
+  ]),
+});
+
+/** 知识地图板块：content/topics/<lang>/<slug>.md */
+const topics = defineCollection({
+  loader: entries('topics'),
+  schema: z
+    .object({
+      title: z.string(),
+      /** 卡片上的英文小标题，如 Foundations */
+      eyebrow: z.string(),
+      order: z.number().int(),
+      summary: z.string(),
+      keywords: z.array(z.string()).min(1),
+      outline: z.array(z.object({ title: z.string(), question: z.string() }).strict()).default([]),
+    })
+    .strict(),
+});
+
+/** 文章（博客 / 笔记）：content/notes/<lang>/<slug>.md(x) */
+const notes = defineCollection({
+  loader: entries('notes'),
+  schema: z
+    .object({
+      title: z.string(),
+      summary: z.string(),
+      date: date,
+      updated: date.optional(),
+      /** 所属板块，对应 content/topics/<lang>/<topic>.md 的文件名 */
+      topic: slug,
+      tags: z.array(z.string()).default([]),
+      draft: z.boolean().default(false),
+      youtubeId: z.string().optional(),
+    })
+    .strict(),
+});
+
+/** 项目：content/projects/<lang>/<slug>.md(x) */
+const projects = defineCollection({
+  loader: entries('projects'),
+  schema: z
+    .object({
+      title: z.string(),
+      summary: z.string(),
+      status: z.enum(['active', 'done', 'planned']),
+      date: date,
+      updated: date.optional(),
+      order: z.number().int().default(100),
+      tags: z.array(z.string()).default([]),
+      role: z.string().optional(),
+      stack: z.array(z.string()).default([]),
+      links: z.array(z.object({ label: z.string(), url: z.url() }).strict()).default([]),
+      draft: z.boolean().default(false),
+      youtubeId: z.string().optional(),
+    })
+    .strict(),
+});
+
+/** 视频卡片：content/videos/<lang>/<slug>.md（只用 frontmatter） */
+const videos = defineCollection({
+  loader: entries('videos'),
+  schema: z
+    .object({
+      title: z.string(),
+      summary: z.string(),
+      date: date,
+      /** 留空表示“制作中” */
+      youtubeId: z.string().optional(),
+      /** 卡片上的小标签 */
+      label: z.string(),
+      /** 可选：配套文章的 slug */
+      note: slug.optional(),
+    })
+    .strict(),
+});
+
+export const collections = { settings, pages, topics, notes, projects, videos };

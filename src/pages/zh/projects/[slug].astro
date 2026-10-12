@@ -1,0 +1,9 @@
+---
+import Project from '../../../views/Project.astro';
+import { pathsFor } from '../../../lib/content';
+
+// 只有写了正文的项目才会生成详情页
+export const getStaticPaths = () => pathsFor('projects', 'zh');
+---
+
+<Project entry={Astro.props.entry} />

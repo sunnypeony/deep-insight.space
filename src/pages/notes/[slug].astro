@@ -1,0 +1,8 @@
+---
+import Note from '../../views/Note.astro';
+import { pathsFor } from '../../lib/content';
+
+export const getStaticPaths = () => pathsFor('notes', 'en');
+---
+
+<Note entry={Astro.props.entry} />

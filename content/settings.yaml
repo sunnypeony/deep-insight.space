@@ -1,0 +1,13 @@
+# 站点设置 / Site settings — shared by both languages.
+site:
+  name: Deep Insight
+  domain: deepinsight.space
+  tagline: Geometry · Perception · Robotics
+  author: Danyang
+  links:
+    # “About the author / 认识作者” button
+    linkedin: https://www.linkedin.com/in/danyang-huang/
+    github: https://github.com/sunnypeony
+    # TODO: replace with the real channel URL
+    youtube: https://www.youtube.com/
+    # email: you@example.com
