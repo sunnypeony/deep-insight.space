@@ -1,6 +1,6 @@
 ---
 title: "双目立体视觉"
-summary: 占位，待补充
+summary: 占位，待补充。
 date: 2026-10-12
 topic: perception
 tags: []

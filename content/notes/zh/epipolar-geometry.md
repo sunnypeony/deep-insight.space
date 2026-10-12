@@ -1,6 +1,6 @@
 ---
 title: "三维重建基础与对极几何"
-summary: 占位，待补充
+summary: 占位，待补充。
 date: 2026-10-12
 topic: perception
 tags: []
