@@ -20,7 +20,7 @@ Everything a reader sees lives in `content/`. Components in `src/` only render i
 3. **Slugs are lowercase-kebab-case** (`a-z`, `0-9`, `-`). A translation uses the **same slug** in the other language folder; that is how the two versions are linked and how the language switcher finds them.
 4. **Frontmatter is strict.** Only the fields listed below are allowed. A typo or unknown field (e.g. `description:` on a note) fails the build with the file name and field.
 5. **Dates** are `YYYY-MM-DD`.
-6. **Drafts** (`draft: true`) are visible in `npm run dev` only. In production they appear in lists as "Writing / 撰写中" with no link, and no page is generated.
+6. **Drafts** (`draft: true`) are visible in `npm run dev` only. In production they appear in lists as "Writing / 撰写中" with no link, and no page is generated. While a **series** is a draft, its chapters are left out of the homepage, the notes index and topic pages in production (section 3.8).
 7. **Files starting with `_` are ignored**, and so is everything in `content/_templates/`.
 8. **Markdown (`.md`) by default.** Use **`.mdx`** only when the body uses a component (section 6).
 
@@ -34,7 +34,8 @@ Everything a reader sees lives in `content/`. Components in `src/` only render i
 | About | `/about/` · `/zh/about/` | `content/pages/<lang>/about.md` |
 | All notes | `/notes/` · `/zh/notes/` | every file in `content/notes/<lang>/` |
 | Note (blog post) | `/notes/<slug>/` · `/zh/notes/<slug>/` | `content/notes/<lang>/<slug>.md(x)` |
-| Topic (knowledge-map track) | `/topics/<slug>/` · `/zh/topics/<slug>/` | `content/topics/<lang>/<slug>.md` |
+| Series (ordered chapters) | `/series/<slug>/` · `/zh/series/<slug>/` | `content/series/<lang>/<slug>.md` (overview), plus every note whose `series` is `<slug>` in the same language |
+| Topic (knowledge-map track) | `/topics/<slug>/` · `/zh/topics/<slug>/` | `content/topics/<lang>/<slug>.md`, plus cards for the series and lists of the notes whose `topic` is `<slug>` |
 | Project | `/projects/<slug>/` · `/zh/projects/<slug>/` | `content/projects/<lang>/<slug>.md(x)`. Only generated when the body is non-empty |
 | Video cards (homepage) | — | `content/videos/<lang>/<slug>.md` |
 | Site name, author, social links | every page | `content/settings.yaml` |
@@ -51,7 +52,7 @@ How each homepage section is filled:
 | Projects | `home.md` → `sections.projects` | `content/projects/<lang>/*`, ordered by `order` |
 | Videos | `home.md` → `sections.videos` | `content/videos/<lang>/*`, newest first |
 
-**Missing translations:** notes, projects and videos may exist in one language only; lists in the other language show the available version with a small "中文 / English" badge. **Topics, `home.md` and `about.md` must exist in both languages**, or the build fails.
+**Missing translations:** notes, series, projects and videos may exist in one language only; lists in the other language show the available version with a small "中文 / English" badge. **Topics, `home.md` and `about.md` must exist in both languages**, or the build fails.
 
 Interface text that is not content, such as button labels, "Draft", "In production" and accessibility labels, lives in `src/i18n.ts` and is changed with code.
 
@@ -73,6 +74,10 @@ Legend: **required** · optional (default).
 | `tags` | string[] | optional (`[]`) | Lowercase keywords, e.g. `[quaternions, rotation]` |
 | `draft` | boolean | optional (`false`) | |
 | `youtubeId` | string | optional | Companion video; embedded above the body with an "Open on YouTube" link |
+| `series` | slug | optional | The series this note is a chapter of: a file name in `content/series/<lang>/`, **same language** as the note. Requires `seriesOrder` |
+| `seriesOrder` | positive integer | optional | Chapter number inside the series. Must be unique within the series and language. Requires `series` |
+
+A note with `series` gets a chapter list (a sidebar on desktop; a collapsible box above the body on mobile), "Series · Chapter N" above its title, and previous/next chapter links at the end. Previous/next skip chapters that are not visible (drafts in production).
 
 ### 3.2 Project — `content/projects/<lang>/<slug>.md(x)`
 
@@ -164,6 +169,21 @@ site:
     # email: you@example.com
 ```
 
+### 3.8 Series — `content/series/<lang>/<slug>.md`
+
+A series is an ordered run of notes that build on each other (e.g. a pipeline). The series file holds the overview; each chapter is an ordinary note with `series` and `seriesOrder`.
+
+| Field | Type | | Notes |
+|---|---|---|---|
+| `title` | string | **required** | Series name |
+| `summary` | string | **required** | One or two sentences on the series page, its topic card and as meta description |
+| `topic` | slug | **required** | Topic whose page shows the series card, e.g. `perception` |
+| `date` | date | **required** | Start date of the series |
+| `updated` | date | optional | |
+| `draft` | boolean | optional (`false`) | A draft series has no page in production, no topic card, and its chapters are left out of production lists |
+
+The body (optional) is the series overview, rendered above the chapter list. Chapters are listed by `seriesOrder`; gaps in the numbering are allowed. A series may exist in one language only; chapters must live in the same language folder as their series file.
+
 ---
 
 ## 4. Body structure by page type
@@ -209,6 +229,18 @@ Chinese: `## 我是谁` · `## 为什么有这个网站` · `## 正在做的事`
 ### 4.4 Topic introduction (optional body)
 
 One or two short paragraphs. What this track covers, what to read first, how it connects to the neighboring tracks.
+
+### 4.5 Series overview (optional body)
+
+```markdown
+## What this series covers     ← 这个系列讲什么: the end-to-end problem
+## How the chapters connect    ← 章节之间的关系: the pipeline, one line per chapter
+## Before you start            ← 预备知识: prerequisites and links to earlier notes
+```
+
+Chinese: `## 这个系列讲什么` · `## 章节之间的关系` · `## 预备知识`.
+
+Each chapter keeps the note structure from 4.1.
 
 ---
 
@@ -283,7 +315,7 @@ Claude Code edits prose only when asked. Its job is placement and validation.
 
 ## 8. Templates
 
-Copy-ready skeletons live in `content/_templates/`: `note.md`, `project.md`, `about.md`, `topic.md`, `video.md`. They are ignored by the build.
+Copy-ready skeletons live in `content/_templates/`: `note.md`, `series.md`, `project.md`, `about.md`, `topic.md`, `video.md`. They are ignored by the build.
 
 ## 9. Common build errors
 
@@ -294,5 +326,9 @@ Copy-ready skeletons live in `content/_templates/`: `note.md`, `project.md`, `ab
 | `Topic "x" is missing its zh version` | Topics need both languages |
 | `Missing content/pages/<lang>/about.md` | Home and About need both languages |
 | `date: use YYYY-MM-DD` | Write dates as `2026-10-12`, not `Oct 12` |
-| `use lowercase-kebab-case` | Slug fields such as `topic` and `note` must look like `world-models` |
+| `use lowercase-kebab-case` | Slug fields such as `topic`, `series` and `note` must look like `world-models` |
+| `series "x" does not exist in zh. Expected content/series/zh/x.md` | Create the series file in the same language as the note, or fix the slug |
+| `seriesOrder 3 in series "x" is already used by content/notes/zh/y` | Each chapter needs its own number within a series and language |
+| ``seriesOrder: required when `series` is set`` | Add `seriesOrder`, or remove `series` |
+| ``series: required when `seriesOrder` is set`` | Add `series`, or remove `seriesOrder` |
 | YAML error near a title | Quote titles that contain `: `, e.g. `title: "Gradient, divergence, curl: a local view"` |

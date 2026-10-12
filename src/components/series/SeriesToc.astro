@@ -1,0 +1,115 @@
+---
+// 系列目录：文章页侧栏（桌面）与正文上方的折叠目录（移动端）共用。
+import { entryHref, isVisible, type Chapter } from '../../lib/content';
+import { useT, type Lang } from '../../i18n';
+
+interface Props {
+  lang: Lang;
+  seriesTitle: string;
+  seriesHref: string;
+  chapters: Chapter[];
+  current: string;
+}
+const { lang, seriesTitle, seriesHref, chapters, current } = Astro.props;
+const t = useT(lang);
+---
+
+<div class="toc">
+  <p class="toc-eyebrow">{t.series}</p>
+  <a class="toc-title" href={seriesHref}>{seriesTitle}</a>
+  <ol class="toc-list">
+    {
+      chapters.map((c) => {
+        const isCurrent = c.slug === current;
+        const inner = (
+          <>
+            <span class="n">{String(c.order).padStart(2, '0')}</span>
+            <span class="label">{c.entry.data.title}</span>
+            {!isVisible(c.entry) && <span class="chip chip-soon">{t.draft}</span>}
+          </>
+        );
+        return (
+          <li class:list={{ current: isCurrent }}>
+            {isCurrent ? (
+              <span class="row" aria-current="page">
+                {inner}
+              </span>
+            ) : isVisible(c.entry) ? (
+              <a class="row" href={entryHref('notes', lang, c.slug)}>
+                {inner}
+              </a>
+            ) : (
+              <span class="row muted">{inner}</span>
+            )}
+          </li>
+        );
+      })
+    }
+  </ol>
+</div>
+
+<style>
+  .toc-eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--brand);
+  }
+  .toc-title {
+    display: block;
+    margin-top: 6px;
+    font-family: var(--font-serif);
+    font-size: 18px;
+    line-height: 1.4;
+    color: var(--ink);
+  }
+  .toc-title:hover {
+    color: var(--brand);
+  }
+  .toc-list {
+    list-style: none;
+    margin: 14px 0 0;
+    padding: 0;
+    border-left: 1px solid var(--line);
+  }
+  .row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-left: -1px;
+    padding: 7px 0 7px 14px;
+    border-left: 2px solid transparent;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+  a.row:hover {
+    color: var(--brand);
+  }
+  .muted {
+    color: var(--muted);
+  }
+  .current .row {
+    border-left-color: var(--brand);
+    color: var(--brand);
+    font-weight: 600;
+  }
+  .n {
+    flex: none;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .current .n {
+    color: var(--brand);
+  }
+  .label {
+    flex: 1;
+  }
+  .chip {
+    flex: none;
+    font-size: 11px;
+    padding: 1px 8px;
+  }
+</style>

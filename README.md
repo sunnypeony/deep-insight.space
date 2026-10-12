@@ -29,6 +29,7 @@ content/                         ← all site content (see CONTENT_GUIDE.md)
 ├─ pages/{en,zh}/about.md        ← About page
 ├─ topics/{en,zh}/*.md           ← knowledge-map tracks
 ├─ notes/{en,zh}/*.md(x)         ← notes / blog posts
+├─ series/{en,zh}/*.md           ← series overviews; chapters are notes with `series` + `seriesOrder`
 ├─ projects/{en,zh}/*.md(x)      ← projects
 ├─ videos/{en,zh}/*.md           ← video cards
 ├─ assets/<slug>/                ← images used in notes and projects
@@ -37,7 +38,7 @@ src/
 ├─ content.config.ts             ← frontmatter schema for every content type (the enforced contract)
 ├─ lib/content.ts                ← content lookup: by language, translations, validation
 ├─ i18n.ts                       ← interface labels (buttons, badges, aria) in English and Chinese
-├─ views/                        ← page templates: Home, About, Topic, Note, Project, NotesIndex
+├─ views/                        ← page templates: Home, About, Topic, Note, Series, Project, NotesIndex
 ├─ pages/                        ← routes only; /zh/ mirrors the English routes
 ├─ components/                   ← header, footer, interactive frame, YouTube, Prose, MDX components
 ├─ layouts/BaseLayout.astro

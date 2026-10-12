@@ -1,0 +1,76 @@
+---
+// 板块页上的系列卡片
+import { entryHref, type Item } from '../../lib/content';
+import { useT, type Lang } from '../../i18n';
+
+interface Props {
+  lang: Lang;
+  item: Item<'series'> & { chapters: number };
+}
+const { lang, item } = Astro.props;
+const t = useT(lang);
+const d = item.entry.data;
+---
+
+<a class="series-card" href={entryHref('series', item.lang, item.slug)}>
+  <span class="top">
+    <span class="eyebrow">{t.series}</span>
+    <span class="badges">
+      {item.fallback && <span class="chip">{t.otherLang}</span>}
+      {d.draft && <span class="chip chip-soon">{t.draftBadge}</span>}
+    </span>
+  </span>
+  <span class="title">{d.title}</span>
+  <span class="summary">{d.summary}</span>
+  <span class="foot">
+    <span class="chip chip-live">{t.chapterCount(item.chapters)}</span>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"></path></svg>
+  </span>
+</a>
+
+<style>
+  .series-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 24px 26px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--brand-soft) 45%, transparent), transparent 60%),
+      var(--surface);
+    box-shadow: var(--shadow);
+    transition: border-color 0.25s ease, transform 0.25s ease;
+  }
+  .series-card:hover {
+    border-color: var(--brand);
+    transform: translateY(-3px);
+  }
+  .top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .badges {
+    display: flex;
+    gap: 6px;
+  }
+  .title {
+    font-family: var(--font-serif);
+    font-size: 24px;
+    line-height: 1.35;
+    color: var(--ink);
+  }
+  .summary {
+    font-size: 15px;
+    color: var(--ink-2);
+  }
+  .foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 6px;
+    color: var(--brand);
+  }
+</style>

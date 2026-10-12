@@ -1,0 +1,87 @@
+---
+// 正文末尾的上一章 / 下一章（已跳过当前环境下不可见的章节）
+import { entryHref, type Chapter } from '../../lib/content';
+import { useT, type Lang } from '../../i18n';
+
+interface Props {
+  lang: Lang;
+  prev?: Chapter;
+  next?: Chapter;
+}
+const { lang, prev, next } = Astro.props;
+const t = useT(lang);
+---
+
+{
+  (prev || next) && (
+    <nav class="series-nav" aria-label={t.seriesNav}>
+      {prev ? (
+        <a class="card prev" href={entryHref('notes', lang, prev.slug)} rel="prev">
+          <span class="dir">← {t.prevChapter}</span>
+          <span class="ch">{t.chapter(prev.order)}</span>
+          <span class="title">{prev.entry.data.title}</span>
+        </a>
+      ) : (
+        <span />
+      )}
+      {next && (
+        <a class="card next" href={entryHref('notes', lang, next.slug)} rel="next">
+          <span class="dir">{t.nextChapter} →</span>
+          <span class="ch">{t.chapter(next.order)}</span>
+          <span class="title">{next.entry.data.title}</span>
+        </a>
+      )}
+    </nav>
+  )
+}
+
+<style>
+  .series-nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 48px;
+  }
+  .card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 18px 20px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    transition: border-color 0.2s ease, transform 0.2s ease;
+  }
+  .card:hover {
+    border-color: var(--brand);
+    transform: translateY(-2px);
+  }
+  .next {
+    grid-column: 2;
+    text-align: right;
+    align-items: flex-end;
+  }
+  .dir {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--brand);
+  }
+  .ch {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .title {
+    font-family: var(--font-serif);
+    font-size: 17px;
+    line-height: 1.45;
+    color: var(--ink);
+  }
+  @media (max-width: 600px) {
+    .series-nav {
+      grid-template-columns: 1fr;
+    }
+    .next {
+      grid-column: 1;
+    }
+  }
+</style>

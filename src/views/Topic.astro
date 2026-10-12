@@ -3,7 +3,17 @@
 import { render } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Prose from '../components/Prose.astro';
-import { byDateDesc, entryHref, getLocalized, getTopics, hasBody, isVisible } from '../lib/content';
+import SeriesCard from '../components/series/SeriesCard.astro';
+import {
+  assertContentRefs,
+  byDateDesc,
+  entryHref,
+  getListedNotes,
+  getSeriesForTopic,
+  getTopics,
+  hasBody,
+  isVisible,
+} from '../lib/content';
 import { localizePath, useT, type Lang } from '../i18n';
 
 const { slug, lang } = Astro.props as { slug: string; lang: Lang };
@@ -15,7 +25,9 @@ const topic = entry.data;
 const prev = topics[i - 1];
 const next = topics[i + 1];
 const { Content } = await render(entry);
-const notes = (await getLocalized('notes', lang))
+await assertContentRefs();
+const series = (await getSeriesForTopic(lang, slug)).sort(byDateDesc);
+const notes = (await getListedNotes(lang))
   .filter((n) => n.entry.data.topic === slug && isVisible(n.entry))
   .sort(byDateDesc);
 ---
@@ -35,6 +47,19 @@ const notes = (await getLocalized('notes', lang))
         <Prose>
           <Content />
         </Prose>
+      </section>
+    )
+  }
+
+  {
+    series.length > 0 && (
+      <section class="container series" aria-labelledby="series-title">
+        <h2 id="series-title">{t.series}</h2>
+        <div class="series-grid">
+          {series.map((item) => (
+            <SeriesCard lang={lang} item={item} />
+          ))}
+        </div>
       </section>
     )
   }
@@ -123,6 +148,14 @@ const notes = (await getLocalized('notes', lang))
   .badges {
     display: flex;
     gap: 6px;
+  }
+  .series {
+    padding-bottom: 40px;
+  }
+  .series-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 18px;
   }
   .body {
     display: grid;

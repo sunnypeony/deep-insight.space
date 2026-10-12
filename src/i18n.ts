@@ -64,6 +64,17 @@ export const ui = {
     links: 'Links',
     notesIndexTitle: 'Notes',
     notesIndexDescription: 'Every note on Deep Insight, newest first.',
+
+    series: 'Series',
+    seriesContents: 'Series contents',
+    seriesChapters: 'Chapters',
+    chapter: (n: number) => `Chapter ${n}`,
+    chapterOf: (n: number, total: number) => `Chapter ${n} of ${total}`,
+    chapterCount: (n: number) => `${n} chapter${n === 1 ? '' : 's'}`,
+    prevChapter: 'Previous chapter',
+    nextChapter: 'Next chapter',
+    seriesNav: 'Series navigation',
+    backToSeries: '← Series overview',
   },
   zh: {
     skip: '跳到正文',
@@ -108,6 +119,17 @@ export const ui = {
     links: '链接',
     notesIndexTitle: '笔记',
     notesIndexDescription: 'Deep Insight 上的全部笔记，按时间倒序。',
+
+    series: '系列',
+    seriesContents: '系列目录',
+    seriesChapters: '章节',
+    chapter: (n: number) => `第 ${n} 章`,
+    chapterOf: (n: number, total: number) => `第 ${n} / ${total} 章`,
+    chapterCount: (n: number) => `${n} 章`,
+    prevChapter: '上一章',
+    nextChapter: '下一章',
+    seriesNav: '系列导航',
+    backToSeries: '← 系列总览',
   },
 } as const;
 

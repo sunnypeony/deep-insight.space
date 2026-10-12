@@ -5,7 +5,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Prose from '../components/Prose.astro';
 import YouTube from '../components/YouTube.astro';
 import { mdxComponents } from '../components/mdx';
-import { entryHref, formatDate, getTopics, getTranslation, splitId } from '../lib/content';
+import SeriesToc from '../components/series/SeriesToc.astro';
+import SeriesNav from '../components/series/SeriesNav.astro';
+import { entryHref, formatDate, getSeriesContext, getTopics, getTranslation, splitId } from '../lib/content';
 import { localizePath, useT } from '../i18n';
 
 const { entry } = Astro.props as { entry: CollectionEntry<'notes'> };
@@ -19,13 +21,47 @@ const alternates = {
   [lang]: entryHref('notes', lang, slug),
   ...(translation ? { [splitId(translation.id).lang]: entryHref('notes', splitId(translation.id).lang, slug) } : {}),
 };
+// 属于某个系列时：侧栏目录 + 上一章 / 下一章
+const ctx = await getSeriesContext(entry);
+const seriesHref = ctx && entryHref('series', lang, ctx.slug);
+const toc = ctx && {
+  lang,
+  seriesTitle: ctx.series.data.title,
+  seriesHref: seriesHref!,
+  chapters: ctx.chapters,
+  current: slug,
+};
 ---
 
 <BaseLayout lang={lang} title={d.title} description={d.summary} alternates={alternates}>
-  <article class="container article">
+  <div class:list={['container', 'layout', { 'has-series': ctx }]}>
+  {
+    toc && (
+      <aside class="toc-side" aria-label={t.seriesContents}>
+        <SeriesToc {...toc} />
+      </aside>
+    )
+  }
+  <article class="article">
     <header>
-      <a class="back" href={localizePath('/notes/', lang)}>{t.backToNotes}</a>
-      <p class="eyebrow"><a href={entryHref('topics', lang, d.topic)}>{topic.entry.data.title}</a></p>
+      {
+        ctx ? (
+          <a class="back" href={seriesHref}>{t.backToSeries}</a>
+        ) : (
+          <a class="back" href={localizePath('/notes/', lang)}>{t.backToNotes}</a>
+        )
+      }
+      <p class="eyebrow">
+        {
+          ctx ? (
+            <>
+              <a href={seriesHref}>{ctx.series.data.title}</a> · {t.chapter(d.seriesOrder!)}
+            </>
+          ) : (
+            <a href={entryHref('topics', lang, d.topic)}>{topic.entry.data.title}</a>
+          )
+        }
+      </p>
       <h1>{d.title}</h1>
       <p class="desc">{d.summary}</p>
       <p class="meta">
@@ -34,6 +70,18 @@ const alternates = {
         {d.draft && <span class="chip chip-soon">{t.draftBadge}</span>}
       </p>
     </header>
+
+    {
+      toc && (
+        <details class="toc-mobile">
+          <summary>
+            <span>{t.seriesContents}</span>
+            <span class="pos">{t.chapterOf(d.seriesOrder!, ctx!.chapters.length)}</span>
+          </summary>
+          <SeriesToc {...toc} />
+        </details>
+      )
+    }
 
     {
       d.youtubeId && (
@@ -57,13 +105,70 @@ const alternates = {
         </footer>
       )
     }
+
+    {ctx && <SeriesNav lang={lang} prev={ctx.prev} next={ctx.next} />}
   </article>
+  </div>
 </BaseLayout>
 
 <style>
-  .article {
+  .layout {
     max-width: calc(760px + var(--gutter) * 2);
     padding-block: clamp(40px, 7vw, 80px);
+  }
+  .layout.has-series {
+    display: grid;
+    grid-template-columns: 250px minmax(0, 760px);
+    justify-content: center;
+    gap: 56px;
+    max-width: calc(1066px + var(--gutter) * 2);
+  }
+  .article {
+    min-width: 0;
+  }
+  .toc-side {
+    position: sticky;
+    top: 108px;
+    align-self: start;
+    max-height: calc(100vh - 140px);
+    overflow-y: auto;
+    padding-top: 6px;
+  }
+  .toc-mobile {
+    display: none;
+    margin-top: 24px;
+    padding: 14px 18px;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .toc-mobile summary {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--brand);
+  }
+  .toc-mobile .pos {
+    font-weight: 500;
+    color: var(--muted);
+  }
+  .toc-mobile[open] summary {
+    margin-bottom: 12px;
+  }
+  @media (max-width: 1100px) {
+    .layout.has-series {
+      display: block;
+      max-width: calc(760px + var(--gutter) * 2);
+    }
+    .toc-side {
+      display: none;
+    }
+    .toc-mobile {
+      display: block;
+    }
   }
   .back {
     display: inline-block;

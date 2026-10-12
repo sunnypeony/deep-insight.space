@@ -116,6 +116,34 @@ const notes = defineCollection({
       tags: z.array(z.string()).default([]),
       draft: z.boolean().default(false),
       youtubeId: z.string().optional(),
+      /** 所属系列，对应 content/series/<lang>/<series>.md 的文件名；与 seriesOrder 同时出现 */
+      series: slug.optional(),
+      /** 在系列中的章节序号 */
+      seriesOrder: z.number().int().positive().optional(),
+    })
+    .strict()
+    .superRefine((d, ctx) => {
+      if (d.series !== undefined && d.seriesOrder === undefined) {
+        ctx.addIssue({ code: 'custom', path: ['seriesOrder'], message: 'required when `series` is set' });
+      }
+      if (d.seriesOrder !== undefined && d.series === undefined) {
+        ctx.addIssue({ code: 'custom', path: ['series'], message: 'required when `seriesOrder` is set' });
+      }
+    }),
+});
+
+/** 系列：content/series/<lang>/<slug>.md；正文（可选）是系列总览 */
+const series = defineCollection({
+  loader: entries('series'),
+  schema: z
+    .object({
+      title: z.string(),
+      summary: z.string(),
+      /** 所属板块，对应 content/topics/<lang>/<topic>.md 的文件名 */
+      topic: slug,
+      date: date,
+      updated: date.optional(),
+      draft: z.boolean().default(false),
     })
     .strict(),
 });
@@ -159,4 +187,4 @@ const videos = defineCollection({
     .strict(),
 });
 
-export const collections = { settings, pages, topics, notes, projects, videos };
+export const collections = { settings, pages, topics, notes, series, projects, videos };

@@ -1,14 +1,14 @@
 ---
 // 全部笔记列表：/notes/ 与 /zh/notes/
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { byDateDesc, entryHref, formatDate, getLocalized, getTopics, isVisible } from '../lib/content';
+import { byDateDesc, entryHref, formatDate, getListedNotes, getTopics, isVisible } from '../lib/content';
 import { useT, type Lang } from '../i18n';
 
 const { lang } = Astro.props as { lang: Lang };
 const t = useT(lang);
 const topics = await getTopics(lang);
 const topicTitle = new Map(topics.map((tp) => [tp.slug, tp.entry.data.title]));
-const notes = (await getLocalized('notes', lang)).sort(byDateDesc);
+const notes = (await getListedNotes(lang)).sort(byDateDesc);
 ---
 
 <BaseLayout lang={lang} title={t.notesIndexTitle} description={t.notesIndexDescription}>
