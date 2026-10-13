@@ -31,6 +31,8 @@ import 'katex/dist/katex.min.css';
     color: var(--brand);
     text-decoration: underline;
     text-underline-offset: 3px;
+    /* 参考资料里的长网址在窄屏上要能换行，否则会被裁掉 */
+    overflow-wrap: anywhere;
   }
   .prose :global(strong) {
     color: var(--ink);
