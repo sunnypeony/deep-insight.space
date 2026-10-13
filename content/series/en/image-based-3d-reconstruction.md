@@ -3,7 +3,7 @@ title: Image-Based 3D Reconstruction
 summary: Recovering camera poses and scene geometry and appearance from a set of photographs. The series follows the classical pipeline chapter by chapter, from the imaging model and epipolar geometry through feature matching, stereo, structure from motion, dense reconstruction, surface reconstruction and texturing.
 topic: perception
 date: 2026-10-12
-draft: true
+draft: false
 ---
 
 ## What this series covers
