@@ -12,6 +12,7 @@ import {
   getListedNotes,
   getLocalized,
   getPage,
+  getSeriesForTopic,
   getSettings,
   getTopics,
   hasBody,
@@ -32,7 +33,14 @@ const topicTitle = new Map(topics.map((tp) => [tp.slug, tp.entry.data.title]));
 // 首页列出全部笔记；草稿显示为“撰写中”，不生成链接（开发模式下可点击预览）
 const allNotes = (await getListedNotes(lang)).sort(byDateDesc);
 const notes = allNotes.slice(0, 5);
+// 卡片计数：M 与笔记索引同源（getListedNotes，每个 slug 一个语言版本），只计已发布、可点开的笔记
 const countByTopic = (slug: string) => allNotes.filter((n) => n.entry.data.topic === slug && !n.entry.data.draft).length;
+// 卡片上的系列：生产环境排除 draft（getSeriesForTopic 已按 isVisible 过滤）
+const seriesByTopic = new Map(
+  await Promise.all(topics.map(async ({ slug }) => [slug, await getSeriesForTopic(lang, slug)] as const)),
+);
+const topicStats = (n: number, series: number) =>
+  series ? `${t.seriesCount(series)} · ${t.noteCount(n)}` : n ? t.noteCount(n) : t.comingSoon;
 
 const projects = (await getLocalized('projects', lang)).sort((a, b) => a.entry.data.order - b.entry.data.order);
 const projectHref = (p: (typeof projects)[number]) =>
@@ -95,28 +103,46 @@ const recipe = home.sections.recipe;
       {
         topics.map(({ slug, entry }, i) => {
           const n = countByTopic(slug);
+          const series = seriesByTopic.get(slug) ?? [];
           const tp = entry.data;
           return (
             <li>
-              <a class="topic" href={entryHref('topics', lang, slug)}>
+              <article class="topic">
                 <span class="node" aria-hidden="true" />
                 <span class="topic-index">
                   {String(i + 1).padStart(2, '0')} / {tp.eyebrow}
                 </span>
-                <h3>{tp.title}</h3>
+                <h3>
+                  <a class="topic-link" href={entryHref('topics', lang, slug)}>
+                    {tp.title}
+                  </a>
+                </h3>
                 <p class="topic-summary">{tp.summary}</p>
+                {series.length > 0 && (
+                  <ul class="topic-series" aria-label={t.seriesOnTopic}>
+                    {series.map((sr) => (
+                      <li>
+                        <a href={entryHref('series', sr.lang, sr.slug)}>
+                          <span class="sr-label">{t.series}</span>
+                          <span class="sr-title">{sr.entry.data.title}</span>
+                          <span class="sr-count">{t.chapterCount(sr.chapters)}</span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 <ul class="kw">
                   {tp.keywords.map((k) => (
                     <li>{k}</li>
                   ))}
                 </ul>
                 <span class="topic-foot">
-                  <span class={n ? 'chip chip-live' : 'chip chip-soon'}>{n ? t.noteCount(n) : t.comingSoon}</span>
+                  <span class={n || series.length ? 'chip chip-live' : 'chip chip-soon'}>{topicStats(n, series.length)}</span>
                   <svg class="go" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
                     <path d="M7 17 17 7M8 7h9v9" />
                   </svg>
                 </span>
-              </a>
+              </article>
             </li>
           );
         })
@@ -416,6 +442,63 @@ const recipe = home.sections.recipe;
   .topic h3 {
     margin-top: 22px;
     font-size: 22px;
+  }
+  /* 标题链接铺满整张卡片；卡片内的系列链接叠在它上面 */
+  .topic-link::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius);
+  }
+  .topic-link:focus-visible {
+    outline: none;
+  }
+  .topic-link:focus-visible::after {
+    outline: 2px solid var(--brand);
+    outline-offset: 3px;
+  }
+  .topic-series {
+    position: relative;
+    z-index: 1;
+    list-style: none;
+    margin: 14px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+  }
+  .topic-series a {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 9px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: color-mix(in srgb, var(--brand-soft) 45%, var(--surface));
+    transition: border-color 0.2s ease;
+  }
+  .topic-series a:hover {
+    border-color: var(--brand);
+  }
+  .sr-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--brand);
+  }
+  .sr-title {
+    font-family: var(--font-serif);
+    font-size: 14.5px;
+    line-height: 1.45;
+    color: var(--ink);
+    overflow-wrap: anywhere;
+  }
+  .topic-series a:hover .sr-title {
+    color: var(--brand);
+  }
+  .sr-count {
+    font-size: 12px;
+    color: var(--muted);
   }
   .topic-summary {
     margin-top: 10px;
