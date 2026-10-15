@@ -28,7 +28,13 @@ const tl = translation && splitId(translation.id).lang;
 const alternates = { [lang]: entryHref('series', lang, slug), ...(tl ? { [tl]: entryHref('series', tl, slug) } : {}) };
 ---
 
-<BaseLayout lang={lang} title={d.title} description={d.summary} alternates={alternates}>
+<BaseLayout
+  lang={lang}
+  title={d.title}
+  description={d.summary}
+  alternates={alternates}
+  ogImage={`/og/${lang}/series/${slug}.png`}
+>
   <article class="container page">
     <header>
       <a class="back" href={entryHref('topics', lang, d.topic)}>← {topic.entry.data.title}</a>

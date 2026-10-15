@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import Analytics from '@vercel/analytics/astro';
 import { getSettings, LANGS } from '../lib/content';
 import { htmlLang, localizePath, useT, type Lang } from '../i18n';
 
@@ -14,10 +15,15 @@ interface Props {
    * 只有一种语言的页面（如未翻译的文章）传入 { zh: '/zh/notes/x/' }。
    */
   alternates?: Partial<Record<Lang, string>>;
+  /** 分享图路径（由 src/pages/og 生成）；未指定时使用该语言首页的分享图 */
+  ogImage?: string;
+  /** og:type，文章类页面可传 'article' */
+  ogType?: 'website' | 'article';
 }
 
 const site = await getSettings();
-const { lang, title, description } = Astro.props;
+const { lang, title, description, ogType = 'website' } = Astro.props;
+const ogImage = new URL(Astro.props.ogImage ?? `/og/${lang}/home.png`, Astro.site);
 const alternatesMap =
   Astro.props.alternates ?? Object.fromEntries(LANGS.map((l) => [l, localizePath(Astro.url.pathname, l)]));
 const t = useT(lang);
@@ -45,12 +51,21 @@ const translated = alternates.length > 1;
     <meta name="theme-color" content="#f4f2ec" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#141716" media="(prefers-color-scheme: dark)" />
 
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={ogType} />
     <meta property="og:site_name" content={site.name} />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta property="og:locale" content={lang === 'zh' ? 'zh_CN' : 'en_US'} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={title ?? `${site.name} · ${site.tagline}`} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -74,6 +89,7 @@ const translated = alternates.length > 1;
       <slot />
     </main>
     <Footer lang={lang} />
+    <Analytics />
 
     <script>
       // 滚动进入视口时淡入

@@ -33,7 +33,7 @@ const toc = ctx && {
 };
 ---
 
-<BaseLayout lang={lang} title={d.title} description={d.summary} alternates={alternates}>
+<BaseLayout lang={lang} title={d.title} description={d.summary} alternates={alternates} ogType="article">
   <div class:list={['container', 'layout', { 'has-series': ctx }]}>
   {
     toc && (

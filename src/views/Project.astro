@@ -22,7 +22,13 @@ const facts = [
 ].filter((f) => f.v);
 ---
 
-<BaseLayout lang={lang} title={d.title} description={d.summary} alternates={alternates}>
+<BaseLayout
+  lang={lang}
+  title={d.title}
+  description={d.summary}
+  alternates={alternates}
+  ogImage={`/og/${lang}/projects/${slug}.png`}
+>
   <article class="container article">
     <header>
       <a class="back" href={`${localizePath('/', lang)}#projects`}>{t.backToProjects}</a>
