@@ -2,6 +2,7 @@
   "name": "deep-insight.space",
   "version": "1.0.0",
   "description": "Deep Insight — notes from geometry to embodied intelligence",
+  "license": "MIT",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",

@@ -10,6 +10,7 @@ draft: true               # set to false to publish
 # youtubeId: dQw4w9WgXcQ  # companion video, embedded above the body
 # series: image-based-3d-reconstruction  # chapter of a series (same language); needs seriesOrder
 # seriesOrder: 1
+# comments: false        # hide the discussion section (default true)
 ---
 
 ## The question

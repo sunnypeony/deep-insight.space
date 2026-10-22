@@ -2,4 +2,12 @@ node_modules/
 dist/
 .astro/
 .DS_Store
-.env
+
+# Environment variables and secrets: .env, .env.local, .env.production, …
+# (`vercel env pull` writes real values to .env.local)
+.env*
+# keep a committed template if you ever add one
+!.env.example
+
+# Vercel CLI project link (`vercel link`)
+.vercel/

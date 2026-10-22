@@ -120,6 +120,8 @@ const notes = defineCollection({
       series: slug.optional(),
       /** 在系列中的章节序号 */
       seriesOrder: z.number().int().positive().optional(),
+      /** 是否在文末显示 Giscus 评论区 */
+      comments: z.boolean().default(true),
     })
     .strict()
     .superRefine((d, ctx) => {
