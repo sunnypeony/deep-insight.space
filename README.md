@@ -61,3 +61,19 @@ public/                          ← favicon, robots.txt
 3. Under **Settings → Domains**, add `deepinsight.space` and `www.deepinsight.space`
    (if the domain is still attached to an old project, remove it there first).
 4. Every push to the production branch (`main` by default) deploys automatically; other branches get preview URLs.
+
+## License
+
+This repository holds two kinds of material under two licenses:
+
+| What | Where | License |
+|---|---|---|
+| **Source code** — components, layouts, styles, build and schema code, configuration, docs such as this README | everything outside `content/` (`src/`, `public/`, `astro.config.mjs`, `package.json`, …) | [MIT](LICENSE) |
+| **Content** — articles, series overviews, page copy and the figures in `content/assets/` | `content/` | [CC BY-NC 4.0](content/LICENSE) |
+
+In short: reuse the code freely, including commercially, as long as the MIT notice is kept. You may share and adapt the writing and figures for **non-commercial** purposes with attribution (for example "Danyang Huang, Deep Insight, https://deepinsight.space") and a link to the license.
+
+Exceptions:
+
+- The fonts in `src/og/fonts/` (Noto Serif SC, Newsreader, Inter, used only to render Open Graph images at build time) are third-party works under the [SIL Open Font License 1.1](src/og/fonts/); their license files are kept alongside them.
+- npm dependencies are installed at build time and keep their own licenses.
