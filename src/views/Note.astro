@@ -7,6 +7,7 @@ import YouTube from '../components/YouTube.astro';
 import { mdxComponents } from '../components/mdx';
 import SeriesToc from '../components/series/SeriesToc.astro';
 import SeriesNav from '../components/series/SeriesNav.astro';
+import Giscus from '../components/Giscus.astro';
 import { entryHref, formatDate, getSeriesContext, getTopics, getTranslation, splitId } from '../lib/content';
 import { localizePath, useT } from '../i18n';
 
@@ -105,6 +106,8 @@ const toc = ctx && {
         </footer>
       )
     }
+
+    {d.comments && <Giscus lang={lang} term={`notes/${slug}`} />}
 
     {ctx && <SeriesNav lang={lang} prev={ctx.prev} next={ctx.next} />}
   </article>

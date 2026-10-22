@@ -1,0 +1,119 @@
+---
+// 笔记页底部的 Giscus 评论区。
+// term = "notes/<slug>"：中英文两个版本共用同一个讨论帖。
+import { giscus, giscusConfigured } from '../giscus';
+import { useT, type Lang } from '../i18n';
+
+interface Props {
+  lang: Lang;
+  /** 讨论帖标识，例如 notes/quaternion-origin */
+  term: string;
+}
+const { lang, term } = Astro.props;
+const t = useT(lang);
+---
+
+{
+  giscusConfigured ? (
+    <section class="discussion" aria-labelledby="discussion-title">
+      <h2 id="discussion-title">{t.discussion}</h2>
+      <div
+        class="giscus-mount"
+        data-repo={giscus.repo}
+        data-repo-id={giscus.repoId}
+        data-category={giscus.category}
+        data-category-id={giscus.categoryId}
+        data-term={term}
+        data-lang={lang === 'zh' ? 'zh-CN' : 'en'}
+      />
+    </section>
+  ) : (
+    import.meta.env.DEV && (
+      <section class="discussion" aria-labelledby="discussion-title">
+        <h2 id="discussion-title">{t.discussion}</h2>
+        <p class="unconfigured">
+          Giscus is not configured yet: fill in <code>repoId</code> and <code>categoryId</code> in <code>src/giscus.ts</code>.
+          This notice only appears in <code>npm run dev</code>.
+        </p>
+      </section>
+    )
+  )
+}
+
+<script>
+  const ORIGIN = 'https://giscus.app';
+
+  // 用户手动切换过主题（<html data-theme>）时用明确的 light / dark，否则跟随系统
+  const currentTheme = () => {
+    const manual = document.documentElement.dataset.theme;
+    return manual === 'dark' ? 'dark' : manual === 'light' ? 'light' : 'preferred_color_scheme';
+  };
+
+  const sendTheme = () => {
+    const frame = document.querySelector<HTMLIFrameElement>('iframe.giscus-frame');
+    frame?.contentWindow?.postMessage({ giscus: { setConfig: { theme: currentTheme() } } }, ORIGIN);
+  };
+
+  const mount = document.querySelector<HTMLElement>('.giscus-mount');
+  if (mount) {
+    const d = mount.dataset;
+    const s = document.createElement('script');
+    s.src = `${ORIGIN}/client.js`;
+    s.async = true;
+    s.crossOrigin = 'anonymous';
+    const attrs: Record<string, string> = {
+      'data-repo': d.repo!,
+      'data-repo-id': d.repoId!,
+      'data-category': d.category!,
+      'data-category-id': d.categoryId!,
+      'data-mapping': 'specific',
+      'data-term': d.term!,
+      'data-strict': '1',
+      'data-reactions-enabled': '1',
+      'data-emit-metadata': '0',
+      'data-input-position': 'top',
+      'data-theme': currentTheme(),
+      'data-lang': d.lang!,
+      'data-loading': 'lazy',
+    };
+    for (const [k, v] of Object.entries(attrs)) s.setAttribute(k, v);
+    mount.appendChild(s);
+
+    // 主题按钮会派发 themechange；未手动切换时 giscus 的 preferred_color_scheme 会自己跟随系统
+    window.addEventListener('themechange', sendTheme);
+    // iframe 懒加载：在它真正加载完成后补发一次当前主题，避免早于加载的切换丢失
+    new MutationObserver((_, obs) => {
+      const frame = mount.querySelector<HTMLIFrameElement>('iframe.giscus-frame');
+      if (frame) {
+        frame.addEventListener('load', sendTheme);
+        obs.disconnect();
+      }
+    }).observe(mount, { childList: true, subtree: true });
+  }
+</script>
+
+<style>
+  .discussion {
+    margin-top: 56px;
+    padding-top: 28px;
+    border-top: 1px solid var(--line);
+  }
+  h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+  .giscus-mount {
+    min-height: 120px;
+  }
+  .unconfigured {
+    padding: 16px 18px;
+    border: 1px dashed var(--line-strong);
+    border-radius: 12px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .unconfigured code {
+    font-family: var(--font-mono);
+    font-size: 0.92em;
+  }
+</style>

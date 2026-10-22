@@ -76,6 +76,7 @@ Legend: **required** · optional (default).
 | `youtubeId` | string | optional | Companion video; embedded above the body with an "Open on YouTube" link |
 | `series` | slug | optional | The series this note is a chapter of: a file name in `content/series/<lang>/`, **same language** as the note. Requires `seriesOrder` |
 | `seriesOrder` | positive integer | optional | Chapter number inside the series. Must be unique within the series and language. Requires `series` |
+| `comments` | boolean | optional (`true`) | Show the Giscus discussion at the end of the note. Both language versions share one thread (`notes/<slug>`), so set it the same in both. `false` hides it on this page |
 
 A note with `series` gets a chapter list (a sidebar on desktop; a collapsible box above the body on mobile), "Series · Chapter N" above its title, and previous/next chapter links at the end. Previous/next skip chapters that are not visible (drafts in production).
 
