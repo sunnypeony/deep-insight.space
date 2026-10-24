@@ -5,12 +5,10 @@
 // 前提：评论仓库是公开的、已开启 Discussions，并安装了 giscus app。
 
 export const giscus = {
-  repo: 'sunnypeony/deepinsight-comments',
-  // TODO: 从 giscus.app 复制 data-repo-id
-  repoId: '',
+  repo: 'sunnypeony/deepinsight.space-comments',
+  repoId: 'R_kgDOVUbiTQ',
   category: 'Announcements',
-  // TODO: 从 giscus.app 复制 data-category-id
-  categoryId: '',
+  categoryId: 'DIC_kwDOVUbiTc4DJZdD',
 } as const;
 
 /** 两个 ID 都填好之后才会加载评论区 */
