@@ -67,9 +67,23 @@ function titleLineCount(title: string, size: number, lang: 'en' | 'zh') {
     .reduce((n, line) => n + Math.max(1, Math.ceil(line.trim().length / perLine)), 0);
 }
 
+/** 从大到小挑字号，尽量让标题不超过 2 行 */
 function titleSize(title: string, lang: 'en' | 'zh') {
-  const len = title.replace(/\*/g, '').length * (lang === 'zh' ? 1.9 : 1);
-  return len > 70 ? 50 : len > 46 ? 58 : 68;
+  for (const size of [68, 58, 50]) if (titleLineCount(title, size, lang) <= 2) return size;
+  return 46;
+}
+
+/** 底部标签：按估算宽度只放得下的那几个，避免压到右侧面板 */
+function fitChips(items: string[] = [], budget = 430) {
+  const out: string[] = [];
+  let used = 0;
+  for (const m of items) {
+    const w = 36 + [...m].reduce((n, ch) => n + (ch.charCodeAt(0) > 0x2e80 ? 19 : 10.5), 0) + 12;
+    if (used + w > budget) break;
+    out.push(m);
+    used += w;
+  }
+  return out;
 }
 
 /** 右侧的坐标系图案（与首页交互图同一视觉语言） */
@@ -219,7 +233,7 @@ export async function renderOgPng(card: OgCard): Promise<Uint8Array> {
       h(
         'div',
         { display: 'flex', alignItems: 'center', position: 'absolute', left: 72, bottom: 48 },
-        ...(card.meta ?? []).map((m) =>
+        ...fitChips(card.meta).map((m) =>
           h(
             'div',
             {
@@ -234,7 +248,7 @@ export async function renderOgPng(card: OgCard): Promise<Uint8Array> {
             m,
           ),
         ),
-        h('div', { fontSize: 19, color: C.muted, marginLeft: (card.meta?.length ?? 0) > 0 ? 8 : 0 }, card.domain),
+        h('div', { fontSize: 19, color: C.muted, marginLeft: fitChips(card.meta).length > 0 ? 8 : 0 }, card.domain),
       ),
     ),
   );
